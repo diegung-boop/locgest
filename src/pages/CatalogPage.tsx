@@ -23,7 +23,6 @@ export const CatalogPage: React.FC = () => {
     name: "",
     category: "Containers",
     brand_model: "",
-    size_dimension: "20 Pés (6m)",
     description: "",
     image_url: "",
   };
@@ -61,7 +60,6 @@ export const CatalogPage: React.FC = () => {
       name: item.name,
       category: item.category,
       brand_model: item.brand_model || "",
-      size_dimension: item.size_dimension || "Padrão",
       description: item.description || "",
       image_url: item.images?.[0] || "",
     });
