@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Proposal, Client, Organization } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
 import { StorageService } from "@/services/storageService";
@@ -52,6 +52,37 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
 
   const [isExporting, setIsExporting] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(proposal.pdf_url || null);
+
+  // Scale-to-fit page preview: the sheet is always rendered at its true A4
+  // width/layout (so it matches the exported PDF pixel-for-pixel); only the
+  // visual presentation is scaled down to fit the available preview pane,
+  // the same technique used by Google Docs/Figma page previews.
+  const previewPaneRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [sheetNaturalSize, setSheetNaturalSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const pane = previewPaneRef.current;
+    const sheet = sheetRef.current;
+    if (!pane || !sheet) return;
+
+    const recalc = () => {
+      const paneWidth = pane.clientWidth;
+      const naturalWidth = sheet.offsetWidth;
+      const naturalHeight = sheet.scrollHeight;
+      setSheetNaturalSize({ width: naturalWidth, height: naturalHeight });
+      if (naturalWidth > 0) {
+        setPreviewScale(Math.min(1, paneWidth / naturalWidth));
+      }
+    };
+
+    recalc();
+    const ro = new ResizeObserver(recalc);
+    ro.observe(pane);
+    ro.observe(sheet);
+    return () => ro.disconnect();
+  }, []);
 
   const formatDateBRL = (dateStr: string) => {
     if (!dateStr) return "";
@@ -134,7 +165,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md text-xs">
-      <div className="w-full max-w-6xl p-6 rounded-2xl glass-panel border border-white/20 grid grid-cols-1 lg:grid-cols-12 gap-6 max-h-[95vh] overflow-hidden">
+      <div className="w-full max-w-[1440px] p-6 rounded-2xl glass-panel border border-white/20 grid grid-cols-1 lg:grid-cols-12 gap-6 max-h-[95vh] overflow-hidden">
 
         {/* Left Side: Editor Form */}
         <div className="lg:col-span-4 flex flex-col justify-between space-y-4 overflow-y-auto pr-2 max-h-[80vh]">
@@ -244,20 +275,42 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
         <div className="lg:col-span-8 flex flex-col justify-between h-[80vh]">
           <div className="flex items-center justify-between pb-2 border-b border-white/10">
             <span className="text-xs text-muted-foreground">Visualização do Layout da Proposta Formal</span>
-            <button onClick={onClose} className="text-muted-foreground hover:text-white transition-colors">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-muted-foreground/70 font-mono tabular-nums">
+                {Math.round(previewScale * 100)}%
+              </span>
+              <button onClick={onClose} className="text-muted-foreground hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
-          {/* Paper View Container — deliberate, symmetric tray around the sheet so it reads as
-              a page resting on a dark desk, not a stretched/cut-off panel */}
-          <div className="flex-1 overflow-y-auto bg-slate-900 border border-white/5 rounded-xl mt-3 p-6 flex justify-center">
-            {/* The A4 Sheet container: natural content height, consistent internal rhythm */}
+          {/* Preview pane — a fixed-size dark tray the page rests in. The sheet always
+              renders at true A4 layout width (so it's pixel-identical to the exported PDF);
+              only its on-screen presentation is scaled down to fit, like a Google Docs/Figma
+              page preview. This avoids fighting flexbox stretch/overflow across browsers. */}
+          <div
+            ref={previewPaneRef}
+            className="flex-1 overflow-y-auto bg-slate-900 border border-white/5 rounded-xl mt-3 p-6 flex justify-center"
+          >
             <div
-              id="formal-proposal-pdf-content"
-              className="w-[210mm] shrink-0 bg-white text-black p-[12mm] text-[9px] leading-relaxed shadow-2xl relative font-sans"
-              style={{ color: "#111" }}
+              className="relative shrink-0"
+              style={{
+                width: sheetNaturalSize.width * previewScale,
+                height: sheetNaturalSize.height * previewScale,
+              }}
             >
+              <div
+                className="absolute top-0 left-0 origin-top-left"
+                style={{ transform: `scale(${previewScale})` }}
+              >
+                {/* The A4 Sheet: untouched true-size DOM, also the exact node html2pdf captures */}
+                <div
+                  ref={sheetRef}
+                  id="formal-proposal-pdf-content"
+                  className="w-[210mm] bg-white text-black p-[12mm] text-[9px] leading-relaxed shadow-2xl relative font-sans"
+                  style={{ color: "#111" }}
+                >
 
               {/* Header Info */}
               <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-5">
@@ -436,6 +489,8 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                 </div>
               </div>
 
+            </div>
+              </div>
             </div>
           </div>
         </div>
