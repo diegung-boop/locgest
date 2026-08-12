@@ -117,10 +117,12 @@ export class SupabaseDataService {
   static async saveEquipmentCatalog(item: EquipmentCatalog): Promise<void> {
     MockDataService.saveCatalog(item);
     try {
-      // 1. Try writing to segregated equipment_catalog table
-      const { error } = await supabaseAdmin.from("equipment_catalog").upsert(item);
+      // 1. Write to segregated equipment_catalog table using primary client
+      const { error } = await supabase.from("equipment_catalog").upsert(item);
       if (error) {
-        console.warn("Supabase saveEquipmentCatalog (segregated) notice:", error.message);
+        console.warn("Supabase saveEquipmentCatalog notice, attempting admin client:", error.message);
+        const adminRes = await supabaseAdmin.from("equipment_catalog").upsert(item);
+        if (adminRes.error) throw adminRes.error;
       }
 
       // 2. Dual-write to public.equipment for backward compatibility
@@ -137,9 +139,10 @@ export class SupabaseDataService {
         images: item.images || [],
         updated_at: new Date().toISOString(),
       };
-      await supabaseAdmin.from("equipment").upsert(legacyRecord);
+      await supabase.from("equipment").upsert(legacyRecord);
     } catch (e) {
       console.error("Supabase saveEquipmentCatalog failed:", e);
+      throw e;
     }
   }
 
@@ -176,10 +179,12 @@ export class SupabaseDataService {
 
   static async saveEquipmentPricing(pricing: EquipmentPricing): Promise<void> {
     try {
-      // 1. Try writing to segregated equipment_pricing table
-      const { error } = await supabaseAdmin.from("equipment_pricing").upsert(pricing);
+      // 1. Write to segregated equipment_pricing table
+      const { error } = await supabase.from("equipment_pricing").upsert(pricing);
       if (error) {
-        console.warn("Supabase saveEquipmentPricing (segregated) notice:", error.message);
+        console.warn("Supabase saveEquipmentPricing notice, trying admin:", error.message);
+        const adminRes = await supabaseAdmin.from("equipment_pricing").upsert(pricing);
+        if (adminRes.error) throw adminRes.error;
       }
 
       // 2. Dual-write to public.equipment for backward compatibility
@@ -193,9 +198,10 @@ export class SupabaseDataService {
         },
         updated_at: new Date().toISOString(),
       };
-      await supabaseAdmin.from("equipment").upsert(legacyUpdate);
+      await supabase.from("equipment").upsert(legacyUpdate);
     } catch (e) {
       console.error("Supabase saveEquipmentPricing error:", e);
+      throw e;
     }
   }
 
@@ -268,10 +274,12 @@ export class SupabaseDataService {
     try {
       const { catalog_item, pricing_item, ...dbRecord } = asset as any;
 
-      // 1. Try writing to segregated equipment_assets table
-      const { error } = await supabaseAdmin.from("equipment_assets").upsert(dbRecord);
+      // 1. Write to segregated equipment_assets table
+      const { error } = await supabase.from("equipment_assets").upsert(dbRecord);
       if (error) {
-        console.warn("Supabase saveEquipmentAsset notice:", error.message);
+        console.warn("Supabase saveEquipmentAsset notice, trying admin:", error.message);
+        const adminRes = await supabaseAdmin.from("equipment_assets").upsert(dbRecord);
+        if (adminRes.error) throw adminRes.error;
       }
 
       // 2. Dual-write to public.equipment
@@ -289,9 +297,10 @@ export class SupabaseDataService {
         location_current: asset.location_current,
         updated_at: new Date().toISOString(),
       };
-      await supabaseAdmin.from("equipment").upsert(legacyRecord);
+      await supabase.from("equipment").upsert(legacyRecord);
     } catch (e) {
       console.error("Supabase saveEquipmentAsset error:", e);
+      throw e;
     }
   }
 
