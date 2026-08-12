@@ -40,7 +40,14 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
   const [observations, setObservations] = useState(
     `1) A ${organization.name.toUpperCase()} possui móveis p/ escritório (birôs, cadeiras, estantes, armários p/ vestiário e etc.) para locação;\n` +
     `2) As conexões hidráulicas (água e esgoto) e elétricas serão de responsabilidade do cliente, bem como licenças, taxas, alvarás e laudos;\n` +
-    `3) O frete corresponde a franquia de 04 (quatro) horas de serviço. Excedentes serão cobrados a R$ 150,00/hora.`
+    `3) O frete corresponde a franquia de 04 (quatro) horas de serviço. Excedentes serão cobrados a R$ 150,00/hora.\n\n` +
+    `Dados para emissão de Contrato de Locação e Nota de Remessa de Bens:\n` +
+    `- CNPJ;\n` +
+    `- Inscrição estadual (se houver) e/ ou municipal;\n` +
+    `- Contrato social e/ ou consolidado e último aditivo;\n` +
+    `- Endereço completo de entrega/ obra;\n` +
+    `- Nome e telefone da pessoa que vai receber o container.\n\n` +
+    `Aguardo retorno.`
   );
 
   const [isExporting, setIsExporting] = useState(false);
@@ -346,13 +353,13 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                 <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Produtos para Locação</div>
                 <table className="w-full border-collapse table-fixed">
                   <colgroup>
-                    <col style={{width: "4%"}} />
-                    <col style={{width: "14%"}} />
-                    <col style={{width: "42%"}} />
-                    <col style={{width: "12%"}} />
-                    <col style={{width: "6%"}} />
-                    <col style={{width: "11%"}} />
-                    <col style={{width: "11%"}} />
+                    <col style={{ width: "4%" }} />
+                    <col style={{ width: "14%" }} />
+                    <col style={{ width: "42%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "6%" }} />
+                    <col style={{ width: "11%" }} />
+                    <col style={{ width: "11%" }} />
                   </colgroup>
                   <thead>
                     <tr className="bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
