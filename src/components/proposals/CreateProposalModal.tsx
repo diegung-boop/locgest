@@ -26,6 +26,7 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
 
   const [clients, setClients] = useState<Client[]>([]);
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const todayStr = new Date().toISOString().split("T")[0];
 
