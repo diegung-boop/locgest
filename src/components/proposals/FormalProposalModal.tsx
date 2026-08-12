@@ -94,7 +94,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
       });
 
       const uploadedUrl = await StorageService.uploadFile(file, "proposals", organization.id);
-      
+
       // Update proposal pdf_url in DB
       const updatedProp: Proposal = {
         ...proposal,
@@ -127,7 +127,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md text-xs">
       <div className="w-full max-w-6xl p-6 rounded-2xl glass-panel border border-white/20 grid grid-cols-1 lg:grid-cols-12 gap-6 max-h-[95vh] overflow-hidden">
-        
+
         {/* Left Side: Editor Form */}
         <div className="lg:col-span-4 flex flex-col justify-between space-y-4 overflow-y-auto pr-2 max-h-[80vh]">
           <div className="space-y-4 text-xs">
@@ -215,11 +215,10 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               <button
                 onClick={handleSendWhatsApp}
                 disabled={!pdfUrl}
-                className={`py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                  pdfUrl
-                    ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20"
-                    : "bg-white/5 text-muted-foreground cursor-not-allowed border border-white/5"
-                }`}
+                className={`py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${pdfUrl
+                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20"
+                  : "bg-white/5 text-muted-foreground cursor-not-allowed border border-white/5"
+                  }`}
               >
                 <Send className="w-3.5 h-3.5" /> WhatsApp
               </button>
@@ -245,12 +244,12 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
           {/* Paper View Container */}
           <div className="flex-1 overflow-y-auto bg-slate-900 border border-white/5 p-4 rounded-xl mt-3 flex justify-center">
             {/* The A4 Sheet container */}
-            <div 
-              id="formal-proposal-pdf-content" 
+            <div
+              id="formal-proposal-pdf-content"
               className="w-[210mm] bg-white text-black p-[15mm] text-[10px] leading-relaxed shadow-2xl relative font-sans"
               style={{ minHeight: "297mm", color: "#111" }}
             >
-              
+
               {/* Header Info */}
               <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
                 <div>
@@ -379,41 +378,37 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               </div>
 
               {/* Warning/Attention box */}
-              <div className="p-2 border border-amber-300 bg-amber-50 rounded text-[7px] text-amber-900 leading-normal mb-4 font-medium">
+              <div className="p-2 border border-amber-300 bg-amber-50 rounded text-[7px] text-amber-900 leading-normal mb-2 font-medium">
                 <span className="font-extrabold uppercase text-amber-700">ATENÇÃO!!!</span> O LOCAL ONDE O(S) CONTAINER(S) SERÁ(ÃO) DESCARREGADO(S) DEVERÁ SER NIVELADO E COMPACTADO, SENDO PROIBIDA A DESCARGA EM AREIA, POIS COMPROMETE A ESTRUTURA, PREJUDICANDO A ABERTURA DE PORTAS E DRENAGEM DA CHUVA, BEM COMO CAUSA DANOS AO CHASSI. SUGESTÃO: PODERÃO SER UTILIZADOS BARROTES DE MADEIRA OU BLOQUETES PREMOLDADOS NOS QUATRO CANTOS.
               </div>
 
               {/* Payment Flow */}
-              <div className="mb-4">
-                <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Forma de Pagamento</div>
+              <div className="mb-2">
+                <div className="font-bold uppercase text-gray-700 text-[8px] mb-1 tracking-wider">Forma de Pagamento</div>
                 <div className="whitespace-pre-line text-gray-800 font-semibold bg-gray-50 p-2 rounded text-[8px] border border-gray-200 leading-normal font-mono">
                   {paymentFlow}
                 </div>
               </div>
 
               {/* General Observations */}
-              <div className="mb-4">
-                <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Observações Gerais</div>
+              <div className="mb-2">
+                <div className="font-bold uppercase text-gray-700 text-[8px] mb-1 tracking-wider">Observações Gerais</div>
                 <div className="whitespace-pre-line text-gray-600 bg-gray-50 p-2 rounded text-[8.5px] leading-relaxed border border-gray-200">
                   {observations}
                 </div>
               </div>
 
               {/* Validity info and Signatures block */}
-              <div className="mt-8">
-                <div className="flex justify-between items-center text-[9px] mb-8 font-semibold">
+              <div className="mt-3">
+                <div className="flex justify-between items-center text-[9px] mb-4 font-semibold">
                   <div className="text-gray-500">Validade da Proposta: <span className="text-black font-extrabold">{formatDateBRL(validityDate)}</span></div>
                   <div>Fortaleza, {new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}</div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-6 pt-4 text-center text-[8px] font-bold">
+                <div className="grid grid-cols-2 gap-12 pt-3 text-center text-[8px] font-bold">
                   <div className="border-t border-black pt-1">
                     <div>Locadora</div>
                     <div className="text-[7px] text-gray-400 font-normal">{organization.name.toUpperCase()}</div>
-                  </div>
-                  <div className="border-t border-black pt-1">
-                    <div>Representante Comercial</div>
-                    <div className="text-[7px] text-gray-400 font-normal">MARLOC COMERCIAL</div>
                   </div>
                   <div className="border-t border-black pt-1">
                     <div>Aceite do Cliente</div>
