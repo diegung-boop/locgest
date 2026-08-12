@@ -104,19 +104,7 @@ export const CatalogPage: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
 
-      const pricingItem: EquipmentPricing = {
-        id: crypto.randomUUID(),
-        organization_id: organization.id,
-        catalog_id: catalogId,
-        size_dimension: formData.size_dimension || "Padrão",
-        daily_rate: 0,
-        monthly_rate: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
       await SupabaseDataService.saveEquipmentCatalog(catalogItem);
-      await SupabaseDataService.saveEquipmentPricing(pricingItem);
       await loadData();
       toast.success(editingItem ? `Modelo ${catalogItem.name} atualizado!` : `Modelo ${catalogItem.name} cadastrado no Catálogo!`);
       setFormData(initialFormState);
@@ -281,29 +269,17 @@ export const CatalogPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground mb-1 font-semibold">Categoria *</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
-                  >
-                    {categories.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-muted-foreground mb-1 font-semibold">Tamanho / Dimensão *</label>
-                  <input
-                    type="text"
-                    placeholder="ex: 20 pés (6m) ou 40 pés (12m)"
-                    value={formData.size_dimension}
-                    onChange={(e) => setFormData({ ...formData, size_dimension: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
-                  />
-                </div>
+              <div>
+                <label className="block text-muted-foreground mb-1 font-semibold">Categoria *</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
+                >
+                  {categories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
 
               <div>

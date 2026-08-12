@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useTenant } from "@/contexts/TenantContext";
-import { EquipmentAsset, EquipmentCatalog, EquipmentStatus } from "@/types/locgest";
+import { EquipmentAsset, EquipmentCatalog, EquipmentPricing, EquipmentStatus } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
-import { Boxes, Plus, Search, Tag, MapPin, Edit3, Copy, X, Layers, AlertCircle, Building, CheckCircle2, Loader2 } from "lucide-react";
+import { Boxes, Plus, Search, Tag, MapPin, Edit3, Copy, X, Layers, AlertCircle, Building, CheckCircle2, Loader2, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { formatCurrencyBRL, maskCurrencyInput, parseCurrencyToNumber } from "@/utils/masks";
 
 export const EquipmentPage: React.FC = () => {
   const { organization } = useTenant();
@@ -24,6 +25,9 @@ export const EquipmentPage: React.FC = () => {
     catalog_id: "",
     code: "",
     serial_number: "",
+    size_dimension: "20 Pés (6m)",
+    daily_rate_str: "100,00",
+    monthly_rate_str: "2.000,00",
     qty: 1, // Batch creation count
     status: "Available" as EquipmentStatus,
     location_current: "Pátio Central",
@@ -62,22 +66,35 @@ export const EquipmentPage: React.FC = () => {
 
   const handleOpenEditModal = (asset: EquipmentAsset) => {
     setEditingAsset(asset);
+    const dailyRate = asset.pricing_item?.daily_rate || 0;
+    const monthlyRate = asset.pricing_item?.monthly_rate || 0;
+
     setFormData({
       catalog_id: asset.catalog_id,
       code: asset.code,
       serial_number: asset.serial_number || "",
+      size_dimension: asset.pricing_item?.size_dimension || "Padrão",
+      daily_rate_str: dailyRate > 0 ? formatCurrencyBRL(dailyRate) : "0,00",
+      monthly_rate_str: monthlyRate > 0 ? formatCurrencyBRL(monthlyRate) : "0,00",
       qty: 1,
       status: asset.status,
       location_current: asset.location_current,
     });
+    setShowCreateModal(true);
   };
 
   const handleCloneAsset = (asset: EquipmentAsset) => {
     setEditingAsset(null);
+    const dailyRate = asset.pricing_item?.daily_rate || 0;
+    const monthlyRate = asset.pricing_item?.monthly_rate || 0;
+
     setFormData({
       catalog_id: asset.catalog_id,
       code: `${asset.code}-CLONED`,
       serial_number: "",
+      size_dimension: asset.pricing_item?.size_dimension || "Padrão",
+      daily_rate_str: dailyRate > 0 ? formatCurrencyBRL(dailyRate) : "0,00",
+      monthly_rate_str: monthlyRate > 0 ? formatCurrencyBRL(monthlyRate) : "0,00",
       qty: 1,
       status: "Available",
       location_current: asset.location_current,
@@ -96,6 +113,23 @@ export const EquipmentPage: React.FC = () => {
 
     try {
       setIsSaving(true);
+
+      // 1. Create or Update Pricing for this Catalog Model + Size
+      const pricingId = editingAsset?.pricing_id || crypto.randomUUID();
+      const pricingRecord: EquipmentPricing = {
+        id: pricingId,
+        organization_id: organization.id,
+        catalog_id: formData.catalog_id,
+        size_dimension: formData.size_dimension || "Padrão",
+        daily_rate: parseCurrencyToNumber(formData.daily_rate_str),
+        monthly_rate: parseCurrencyToNumber(formData.monthly_rate_str),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      await SupabaseDataService.saveEquipmentPricing(pricingRecord);
+
+      // 2. Create Asset(s) linking catalog_id and pricing_id
       const quantity = editingAsset ? 1 : Math.max(1, Number(formData.qty) || 1);
 
       for (let i = 0; i < quantity; i++) {
@@ -109,6 +143,7 @@ export const EquipmentPage: React.FC = () => {
           id: editingAsset ? editingAsset.id : crypto.randomUUID(),
           organization_id: organization.id,
           catalog_id: formData.catalog_id,
+          pricing_id: pricingId,
           code: itemCode,
           serial_number: itemSerial,
           status: formData.status,
@@ -118,6 +153,20 @@ export const EquipmentPage: React.FC = () => {
         };
 
         await SupabaseDataService.saveEquipmentAsset(newAsset);
+      }
+
+      await loadData();
+      toast.success(editingAsset ? `Patrimônio ${formData.code} atualizado!` : `${quantity} Patrimônio(s) cadastrado(s) com sucesso!`);
+      setFormData(initialFormState);
+      setEditingAsset(null);
+      setShowCreateModal(false);
+    } catch (err) {
+      console.error("Error saving physical asset:", err);
+      toast.error("Erro ao salvar patrimônio físico.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
       }
 
       await loadData();
@@ -350,6 +399,49 @@ export const EquipmentPage: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant"
                   />
+                </div>
+              </div>
+
+              {/* Pricing & Size configuration for this asset */}
+              <div className="p-3.5 rounded-xl bg-slate-900/90 border border-white/10 space-y-3">
+                <div className="text-xs font-bold text-tenant flex items-center gap-1.5">
+                  <Coins className="w-4 h-4 text-emerald-400" /> Especificação & Tarifas de Locação
+                </div>
+                
+                <div>
+                  <label className="block text-muted-foreground mb-1 font-semibold">Tamanho / Dimensão *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ex: 20 pés (6m) ou 40 pés (12m)"
+                    value={formData.size_dimension}
+                    onChange={(e) => setFormData({ ...formData, size_dimension: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-muted-foreground mb-1 font-semibold">Tarifa Diária (R$) (Opcional)</label>
+                    <input
+                      type="text"
+                      placeholder="0,00"
+                      value={formData.daily_rate_str}
+                      onChange={(e) => setFormData({ ...formData, daily_rate_str: maskCurrencyInput(e.target.value) })}
+                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-emerald-400 font-bold focus:outline-none focus:border-tenant font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-muted-foreground mb-1 font-semibold">Tarifa Mensal (R$) *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="0,00"
+                      value={formData.monthly_rate_str}
+                      onChange={(e) => setFormData({ ...formData, monthly_rate_str: maskCurrencyInput(e.target.value) })}
+                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-emerald-400 font-bold focus:outline-none focus:border-tenant font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 
