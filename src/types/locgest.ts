@@ -44,6 +44,7 @@ export interface EquipmentCatalog {
   name: string;
   category: string;
   brand_model?: string | null;
+  size_dimension: string; // ex: "20 Pés (6m)", "40 Pés (12m)"
   description?: string | null;
   images?: string[];
   created_at: string;
@@ -55,7 +56,6 @@ export interface EquipmentPricing {
   organization_id: string;
   catalog_id: string;
   catalog_item?: EquipmentCatalog;
-  size_dimension: string; // ex: "20 Pés (6m)", "40 Pés (12m)", "3,5 Toneladas", "100 kVA"
   daily_rate: number;
   monthly_rate: number;
   created_at: string;

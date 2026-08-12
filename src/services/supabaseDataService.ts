@@ -99,9 +99,23 @@ export class SupabaseDataService {
 
   static async saveEquipmentCatalog(item: EquipmentCatalog): Promise<void> {
     try {
-      const { error } = await supabase.from("equipment_catalog").upsert(item);
+      const dbRecord = {
+        id: item.id,
+        organization_id: item.organization_id,
+        name: item.name,
+        category: item.category,
+        brand_model: item.brand_model || null,
+        size_dimension: item.size_dimension || "Padrão",
+        description: item.description || null,
+        images: item.images || [],
+        created_at: item.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from("equipment_catalog").upsert(dbRecord);
       if (error) {
-        const adminRes = await supabaseAdmin.from("equipment_catalog").upsert(item);
+        console.warn("Supabase saveEquipmentCatalog notice, attempting admin client:", error.message);
+        const adminRes = await supabaseAdmin.from("equipment_catalog").upsert(dbRecord);
         if (adminRes.error) throw adminRes.error;
       }
     } catch (e) {
@@ -144,7 +158,6 @@ export class SupabaseDataService {
         id: pricing.id,
         organization_id: pricing.organization_id,
         catalog_id: pricing.catalog_id,
-        size_dimension: pricing.size_dimension || "Padrão",
         daily_rate: Number(pricing.daily_rate) || 0,
         monthly_rate: Number(pricing.monthly_rate) || 0,
         created_at: pricing.created_at || new Date().toISOString(),

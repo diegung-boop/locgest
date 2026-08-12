@@ -67,17 +67,25 @@ export const PricingSettingsPage: React.FC = () => {
   const handleSaveInline = async (item: EquipmentCatalog) => {
     try {
       setSavingItemIds((prev) => ({ ...prev, [item.id]: true }));
+
+      // Update catalog model to save size_dimension changes
+      const updatedCatalog: EquipmentCatalog = {
+        ...item,
+        size_dimension: editBuffer.size_dimension || "Padrão",
+        updated_at: new Date().toISOString(),
+      };
+
       const pricingRecord: EquipmentPricing = {
         id: `price-${item.id}`,
         organization_id: organization.id,
         catalog_id: item.id,
-        size_dimension: editBuffer.size_dimension || "Padrão",
         daily_rate: parseCurrencyToNumber(editBuffer.daily_rate_str),
         monthly_rate: parseCurrencyToNumber(editBuffer.monthly_rate_str),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
+      await SupabaseDataService.saveEquipmentCatalog(updatedCatalog);
       await SupabaseDataService.saveEquipmentPricing(pricingRecord);
       await loadData();
       toast.success(`Tarifas do modelo "${item.name}" atualizadas!`);
@@ -106,6 +114,7 @@ export const PricingSettingsPage: React.FC = () => {
         name: newModelData.name,
         category: newModelData.category,
         brand_model: newModelData.brand_model || null,
+        size_dimension: newModelData.size_dimension || "Padrão",
         description: newModelData.description || null,
         images: ["https://images.unsplash.com/photo-1579412690850-bd41cd0af397?w=600&auto=format&fit=crop&q=80"],
         created_at: new Date().toISOString(),
@@ -116,7 +125,6 @@ export const PricingSettingsPage: React.FC = () => {
         id: crypto.randomUUID(),
         organization_id: organization.id,
         catalog_id: catalogId,
-        size_dimension: newModelData.size_dimension || "Padrão",
         daily_rate: parseCurrencyToNumber(newModelData.daily_rate_str),
         monthly_rate: parseCurrencyToNumber(newModelData.monthly_rate_str),
         created_at: new Date().toISOString(),

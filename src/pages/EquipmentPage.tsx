@@ -25,7 +25,6 @@ export const EquipmentPage: React.FC = () => {
     catalog_id: "",
     code: "",
     serial_number: "",
-    size_dimension: "20 Pés (6m)",
     daily_rate_str: "100,00",
     monthly_rate_str: "2.000,00",
     qty: 1, // Batch creation count
@@ -73,7 +72,6 @@ export const EquipmentPage: React.FC = () => {
       catalog_id: asset.catalog_id,
       code: asset.code,
       serial_number: asset.serial_number || "",
-      size_dimension: asset.pricing_item?.size_dimension || "Padrão",
       daily_rate_str: dailyRate > 0 ? formatCurrencyBRL(dailyRate) : "0,00",
       monthly_rate_str: monthlyRate > 0 ? formatCurrencyBRL(monthlyRate) : "0,00",
       qty: 1,
@@ -92,7 +90,6 @@ export const EquipmentPage: React.FC = () => {
       catalog_id: asset.catalog_id,
       code: `${asset.code}-CLONED`,
       serial_number: "",
-      size_dimension: asset.pricing_item?.size_dimension || "Padrão",
       daily_rate_str: dailyRate > 0 ? formatCurrencyBRL(dailyRate) : "0,00",
       monthly_rate_str: monthlyRate > 0 ? formatCurrencyBRL(monthlyRate) : "0,00",
       qty: 1,
@@ -114,13 +111,12 @@ export const EquipmentPage: React.FC = () => {
     try {
       setIsSaving(true);
 
-      // 1. Create or Update Pricing for this Catalog Model + Size
+      // 1. Create or Update Pricing for this Catalog Model
       const pricingId = editingAsset?.pricing_id || crypto.randomUUID();
       const pricingRecord: EquipmentPricing = {
         id: pricingId,
         organization_id: organization.id,
         catalog_id: formData.catalog_id,
-        size_dimension: formData.size_dimension || "Padrão",
         daily_rate: parseCurrencyToNumber(formData.daily_rate_str),
         monthly_rate: parseCurrencyToNumber(formData.monthly_rate_str),
         created_at: new Date().toISOString(),
@@ -385,19 +381,7 @@ export const EquipmentPage: React.FC = () => {
               {/* Pricing & Size configuration for this asset */}
               <div className="p-3.5 rounded-xl bg-slate-900/90 border border-white/10 space-y-3">
                 <div className="text-xs font-bold text-tenant flex items-center gap-1.5">
-                  <Coins className="w-4 h-4 text-emerald-400" /> Especificação & Tarifas de Locação
-                </div>
-                
-                <div>
-                  <label className="block text-muted-foreground mb-1 font-semibold">Tamanho / Dimensão *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="ex: 20 pés (6m) ou 40 pés (12m)"
-                    value={formData.size_dimension}
-                    onChange={(e) => setFormData({ ...formData, size_dimension: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
-                  />
+                  <Coins className="w-4 h-4 text-emerald-400" /> Tarifas de Locação
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

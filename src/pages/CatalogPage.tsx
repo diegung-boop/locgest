@@ -23,6 +23,7 @@ export const CatalogPage: React.FC = () => {
     name: "",
     category: "Containers",
     brand_model: "",
+    size_dimension: "20 Pés (6m)",
     description: "",
     image_url: "",
   };
@@ -60,6 +61,7 @@ export const CatalogPage: React.FC = () => {
       name: item.name,
       category: item.category,
       brand_model: item.brand_model || "",
+      size_dimension: item.size_dimension || "Padrão",
       description: item.description || "",
       image_url: item.images?.[0] || "",
     });
@@ -96,6 +98,7 @@ export const CatalogPage: React.FC = () => {
         name: formData.name,
         category: formData.category,
         brand_model: formData.brand_model || null,
+        size_dimension: formData.size_dimension || "Padrão",
         description: formData.description || null,
         images: [baseImage],
         created_at: editingItem ? editingItem.created_at : new Date().toISOString(),
@@ -267,17 +270,30 @@ export const CatalogPage: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-muted-foreground mb-1 font-semibold">Categoria *</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
-                >
-                  {categories.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-muted-foreground mb-1 font-semibold">Categoria *</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
+                  >
+                    {categories.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-muted-foreground mb-1 font-semibold">Tamanho / Dimensão *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ex: 6,06m x 2,44m"
+                    value={formData.size_dimension}
+                    onChange={(e) => setFormData({ ...formData, size_dimension: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
+                  />
+                </div>
               </div>
 
               <div>
