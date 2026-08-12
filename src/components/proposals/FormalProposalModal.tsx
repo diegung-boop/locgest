@@ -269,26 +269,30 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               </div>
 
               {/* Prestadora e Tomador details columns */}
-              <div className="grid grid-cols-2 gap-4 mb-4 text-[9px] border-b border-gray-200 pb-4">
+              <div className="grid grid-cols-2 gap-4 mb-4 text-[8px] border-b border-gray-200 pb-3">
                 {/* Prestador */}
-                <div className="space-y-1">
-                  <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[8px]">Locadora (Prestadora)</div>
-                  <div className="font-bold text-[10px]">{organization.name.toUpperCase()}</div>
-                  {organization.cnpj && <div><span className="font-bold">CNPJ:</span> {organization.cnpj}</div>}
-                  {organization.phone && <div><span className="font-bold">Telefone:</span> {organization.phone}</div>}
-                  {organization.email && <div><span className="font-bold">E-mail:</span> {organization.email.toLowerCase()}</div>}
-                  {organization.address && <div><span className="font-bold">Endereço:</span> {organization.address}</div>}
+                <div>
+                  <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[7.5px] mb-0.5">Locadora (Prestadora)</div>
+                  <div className="font-bold text-[9px] mb-0.5">{organization.name.toUpperCase()}</div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 leading-snug">
+                    {organization.cnpj && <div><span className="font-bold">CNPJ:</span> {organization.cnpj}</div>}
+                    {organization.phone && <div><span className="font-bold">Tel:</span> {organization.phone}</div>}
+                    {organization.email && <div className="col-span-2"><span className="font-bold">E-mail:</span> {organization.email.toLowerCase()}</div>}
+                    {organization.address && <div className="col-span-2"><span className="font-bold">Endereço:</span> {organization.address}</div>}
+                  </div>
                 </div>
 
                 {/* Tomador */}
-                <div className="space-y-1">
-                  <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[8px]">Tomador do Serviço (Cliente)</div>
-                  <div className="font-bold text-[10px]">{client?.company_name?.toUpperCase() || "CLIENTE NÃO CADASTRADO"}</div>
-                  {client?.cnpj_cpf && <div><span className="font-bold">CNPJ/CPF:</span> {client.cnpj_cpf}</div>}
-                  {client?.contact_person && <div><span className="font-bold">Contato:</span> {client.contact_person}</div>}
-                  {client?.phone && <div><span className="font-bold">Telefone:</span> {client.phone}</div>}
-                  {client?.email && <div><span className="font-bold">E-mail:</span> {client.email.toLowerCase()}</div>}
-                  {client?.billing_address && <div><span className="font-bold">Endereço:</span> {client.billing_address}</div>}
+                <div>
+                  <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[7.5px] mb-0.5">Tomador do Serviço (Cliente)</div>
+                  <div className="font-bold text-[9px] mb-0.5">{client?.company_name?.toUpperCase() || "CLIENTE NÃO CADASTRADO"}</div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 leading-snug">
+                    {client?.cnpj_cpf && <div><span className="font-bold">CNPJ/CPF:</span> {client.cnpj_cpf}</div>}
+                    {client?.contact_person && <div><span className="font-bold">Contato:</span> {client.contact_person}</div>}
+                    {client?.phone && <div><span className="font-bold">Tel:</span> {client.phone}</div>}
+                    {client?.email && <div className="col-span-2"><span className="font-bold">E-mail:</span> {client.email.toLowerCase()}</div>}
+                    {client?.billing_address && <div className="col-span-2"><span className="font-bold">Endereço:</span> {client.billing_address}</div>}
+                  </div>
                 </div>
               </div>
 
@@ -340,38 +344,44 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               {/* Leased Products Table */}
               <div className="mb-4">
                 <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Produtos para Locação</div>
-                <table className="w-full border-collapse">
+                <table className="w-full border-collapse table-fixed">
+                  <colgroup>
+                    <col style={{width: "4%"}} />
+                    <col style={{width: "14%"}} />
+                    <col style={{width: "42%"}} />
+                    <col style={{width: "12%"}} />
+                    <col style={{width: "6%"}} />
+                    <col style={{width: "11%"}} />
+                    <col style={{width: "11%"}} />
+                  </colgroup>
                   <thead>
                     <tr className="bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
-                      <th className="p-1 text-[8px]">Item</th>
+                      <th className="p-1 text-[8px]">#</th>
                       <th className="p-1 text-[8px]">TAG / Patrimônio</th>
-                      <th className="p-1 text-[8px]">Descrição / Especificações</th>
+                      <th className="p-1 text-[8px]">Descrição</th>
                       <th className="p-1 text-[8px]">Faturamento</th>
-                      <th className="p-1 text-[8px] text-center">Qtde</th>
-                      <th className="p-1 text-[8px] text-right">Valor Unit.</th>
-                      <th className="p-1 text-[8px] text-right">Total</th>
+                      <th className="p-1 text-[8px] text-center">Qtd</th>
+                      <th className="p-1 text-[8px] text-right whitespace-nowrap">Vl. Unit.</th>
+                      <th className="p-1 text-[8px] text-right whitespace-nowrap">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {proposal.equipment_items?.map((item, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 valign-top align-top">
+                      <tr key={idx} className="border-b border-gray-200 align-top">
                         <td className="p-1">{idx + 1}</td>
                         <td className="p-1 font-bold text-gray-700">{item.equipment_code}</td>
-                        <td className="p-1 max-w-xs">
+                        <td className="p-1">
                           <span className="font-bold text-gray-900 block">{item.equipment_name.toUpperCase()}</span>
-                          <span className="text-[8px] text-gray-500 leading-tight block">
-                            Estrutura em aço galvanizado, pintura protetiva, ideal para canteiros de obra.
-                          </span>
                         </td>
                         <td className="p-1 text-[8px] font-bold text-gray-600 uppercase">MENSAL</td>
                         <td className="p-1 text-center font-semibold">{item.qty}</td>
-                        <td className="p-1 text-right">R$ {item.monthly_rate.toLocaleString("pt-BR")}</td>
-                        <td className="p-1 text-right font-bold">R$ {item.total_amount.toLocaleString("pt-BR")}</td>
+                        <td className="p-1 text-right whitespace-nowrap">R$ {item.monthly_rate.toLocaleString("pt-BR")}</td>
+                        <td className="p-1 text-right font-bold whitespace-nowrap">R$ {item.total_amount.toLocaleString("pt-BR")}</td>
                       </tr>
                     ))}
                     <tr className="bg-gray-50 font-bold border-t border-gray-300">
                       <td colSpan={6} className="p-1 text-[8px] uppercase">TOTAL MENSAL DOS EQUIPAMENTOS</td>
-                      <td className="p-1 text-right text-emerald-800 font-black">R$ {proposal.total_amount.toLocaleString("pt-BR")}</td>
+                      <td className="p-1 text-right text-emerald-800 font-black whitespace-nowrap">R$ {proposal.total_amount.toLocaleString("pt-BR")}</td>
                     </tr>
                   </tbody>
                 </table>
