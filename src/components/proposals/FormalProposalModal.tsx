@@ -359,7 +359,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               </div>
 
               {/* Lease Metadata Row */}
-              <div className="grid grid-cols-3 gap-2 bg-gray-100 p-2.5 rounded mb-5 font-semibold text-[9px]">
+              <div className="grid grid-cols-3 gap-2 items-center bg-gray-100 p-2.5 rounded mb-5 font-semibold text-[9px]">
                 <div><span className="text-gray-500">Período:</span> {formatDateBRL(proposal.start_date)} à {formatDateBRL(proposal.end_date)}</div>
                 <div><span className="text-gray-500">Condição:</span> LOCAÇÃO</div>
                 <div className="text-right text-emerald-700 font-extrabold text-[10px]">Total Proposta: R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
@@ -368,7 +368,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               {/* Complementary Costs Table */}
               <div className="mb-5">
                 <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Valores Complementares</div>
-                <table className="w-full border-collapse">
+                <table className="w-full border-collapse [&_td]:align-middle [&_th]:align-middle">
                   <thead>
                     <tr className="bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
                       <th className="p-1.5 text-[8px]">Item</th>
@@ -406,7 +406,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               {/* Leased Products Table */}
               <div className="mb-5">
                 <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Produtos para Locação</div>
-                <table className="w-full border-collapse table-fixed">
+                <table className="w-full border-collapse table-fixed [&_td]:align-middle [&_th]:align-middle">
                   <colgroup>
                     <col style={{ width: "4%" }} />
                     <col style={{ width: "14%" }} />
@@ -429,7 +429,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                   </thead>
                   <tbody>
                     {proposal.equipment_items?.map((item, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 align-top">
+                      <tr key={idx} className="border-b border-gray-200">
                         <td className="p-1.5">{idx + 1}</td>
                         <td className="p-1.5 font-bold text-gray-700">{item.equipment_code}</td>
                         <td className="p-1.5">
