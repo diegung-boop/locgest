@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTenant } from "@/contexts/TenantContext";
-import { Client, Equipment, Proposal, ProposalItem } from "@/types/locgest";
+import { Client, Equipment, Proposal, ProposalItem, Contract, Maintenance } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
 import { FileText, X, Building2, Calendar, Plus, Trash2, Layers, AlertTriangle, Truck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -26,6 +26,9 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
 
   const [clients, setClients] = useState<Client[]>([]);
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   const todayStr = new Date().toISOString().split("T")[0];
@@ -42,14 +45,75 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
     { equipment_id: "", qty: 1, duration_months: 1 },
   ]);
 
+  const isEquipmentAvailable = (eq: Equipment, targetDateStr: string): boolean => {
+    if (eq.status === "Interno") {
+      return false;
+    }
+    if (eq.status === "Available") {
+      return true;
+    }
+
+    if (!targetDateStr) return true;
+    const targetDate = new Date(targetDateStr + "T00:00:00");
+    if (isNaN(targetDate.getTime())) return true;
+
+    // Check overlap with active/pending contracts
+    const hasContractOverlap = contracts.some((contract) => {
+      if (contract.status === "Finished" || contract.status === "Terminated") return false;
+
+      const associatedProposal = proposals.find((p) => p.id === contract.proposal_id);
+      if (!associatedProposal) return false;
+
+      const hasAsset = associatedProposal.equipment_items?.some(
+        (item) => item.equipment_id === eq.id
+      );
+      if (!hasAsset) return false;
+
+      const start = new Date(contract.start_date + "T00:00:00");
+      const end = new Date(contract.end_date + "T00:00:00");
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+
+      return targetDate >= start && targetDate <= end;
+    });
+
+    if (hasContractOverlap) return false;
+
+    // Check overlap with scheduled or in progress maintenance blocks
+    const hasMaintenanceOverlap = maintenances.some((m) => {
+      if (m.asset_id !== eq.id) return false;
+      if (m.status === "Completed") return false;
+
+      const start = new Date(m.start_date + "T00:00:00");
+      const end = m.end_date ? new Date(m.end_date + "T00:00:00") : null;
+      if (isNaN(start.getTime())) return false;
+
+      if (end && !isNaN(end.getTime())) {
+        return targetDate >= start && targetDate <= end;
+      }
+      return targetDate >= start;
+    });
+
+    if (hasMaintenanceOverlap) return false;
+
+    return true;
+  };
+
   const loadData = async () => {
     const cliList = await SupabaseDataService.getClients(organization.id);
     const eqList = await SupabaseDataService.getEquipment(organization.id);
+    const conList = await SupabaseDataService.getContracts(organization.id);
+    const mainList = await SupabaseDataService.getMaintenances(organization.id);
+    const propList = await SupabaseDataService.getProposals(organization.id);
+
     setClients(cliList);
     setEquipmentList(eqList);
+    setContracts(conList);
+    setMaintenances(mainList);
+    setProposals(propList);
 
     const initialClientId = preselectedClientId || cliList[0]?.id || "";
-    const initialEqId = eqList[0]?.id || "";
+    const firstAvailableEq = eqList.find((eq) => eq.status === "Available");
+    const initialEqId = firstAvailableEq?.id || eqList[0]?.id || "";
     const initialClient = cliList.find((c) => c.id === initialClientId);
 
     setFormData((prev) => ({
@@ -96,7 +160,8 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
 
   // Multi-Item Form Handlers
   const handleAddItem = () => {
-    const defaultEqId = equipmentList[0]?.id || "";
+    const available = equipmentList.filter((eq) => isEquipmentAvailable(eq, formData.start_date));
+    const defaultEqId = available[0]?.id || equipmentList[0]?.id || "";
     setItems((prev) => [...prev, { equipment_id: defaultEqId, qty: 1, duration_months: maxDurationMonths }]);
   };
 
@@ -335,15 +400,17 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
                           onChange={(e) => handleUpdateItem(idx, "equipment_id", e.target.value)}
                           className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant text-xs"
                         >
-                          {equipmentList.map((eq) => {
-                            const sizeTag = eq.catalog_item?.size_dimension ? ` [${eq.catalog_item.size_dimension}]` : "";
-                            const rateTag = eq.monthly_rate > 0 ? ` (R$ ${eq.monthly_rate.toLocaleString("pt-BR")}/mês)` : "";
-                            return (
-                              <option key={eq.id} value={eq.id}>
-                                {eq.code} - {eq.name}{sizeTag}{rateTag}
-                              </option>
-                            );
-                          })}
+                          {equipmentList
+                            .filter((eq) => isEquipmentAvailable(eq, formData.start_date) || eq.id === item.equipment_id)
+                            .map((eq) => {
+                              const sizeTag = eq.catalog_item?.size_dimension ? ` [${eq.catalog_item.size_dimension}]` : "";
+                              const rateTag = eq.monthly_rate > 0 ? ` (R$ ${eq.monthly_rate.toLocaleString("pt-BR")}/mês)` : "";
+                              return (
+                                <option key={eq.id} value={eq.id}>
+                                  {eq.code} - {eq.name}{sizeTag}{rateTag}
+                                </option>
+                              );
+                            })}
                         </select>
 
                         {/* Selected Equipment Pricing & Size Info Badge */}

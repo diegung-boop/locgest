@@ -10,7 +10,8 @@ import {
   ServiceOrder,
   EquipmentCatalog,
   EquipmentPricing,
-  EquipmentAsset
+  EquipmentAsset,
+  Maintenance
 } from "@/types/locgest";
 
 export class SupabaseDataService {
@@ -264,6 +265,39 @@ export class SupabaseDataService {
     } catch (e) {
       console.error("Supabase getEquipment failed:", e);
       return [];
+    }
+  }
+
+  // MAINTENANCES
+  static async getMaintenances(orgId: string): Promise<Maintenance[]> {
+    try {
+      const { data, error } = await supabase.from("maintenances").select("*").eq("organization_id", orgId);
+      if (error) {
+        console.error("Supabase getMaintenances error:", error);
+        return [];
+      }
+      const assets = await this.getEquipmentAssets(orgId);
+      return (data || []).map((m: any) => ({
+        ...m,
+        asset: assets.find((a) => a.id === m.asset_id),
+      })) as Maintenance[];
+    } catch (e) {
+      console.error("Supabase getMaintenances failed:", e);
+      return [];
+    }
+  }
+
+  static async saveMaintenance(maintenance: Maintenance): Promise<void> {
+    try {
+      const { asset, ...dbRecord } = maintenance as any;
+      const { error } = await supabase.from("maintenances").upsert(dbRecord);
+      if (error) {
+        const adminRes = await supabaseAdmin.from("maintenances").upsert(dbRecord);
+        if (adminRes.error) throw adminRes.error;
+      }
+    } catch (e) {
+      console.error("Supabase saveMaintenance failed:", e);
+      throw e;
     }
   }
 

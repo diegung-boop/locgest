@@ -93,13 +93,25 @@ export interface Equipment {
   location_current: string;
   catalog_id?: string;
   pricing_id?: string;
-  catalog_item?: EquipmentCatalog;
-  pricing_item?: EquipmentPricing;
-  specifications?: Record<string, string>;
   images?: string[];
   created_at: string;
   updated_at: string;
+  catalog_item?: EquipmentCatalog;
 }
+
+export interface Maintenance {
+  id: string;
+  organization_id: string;
+  asset_id: string;
+  description?: string | null;
+  start_date: string;
+  end_date?: string | null;
+  status: "Scheduled" | "InProgress" | "Completed";
+  created_at?: string;
+  updated_at?: string;
+  asset?: EquipmentAsset;
+}
+
 
 export interface Client {
   id: string;
