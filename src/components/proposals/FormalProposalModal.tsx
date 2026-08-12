@@ -356,40 +356,40 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                   </div>
 
                   {/* Lease Metadata Row */}
-                  <div className="grid grid-cols-3 gap-2 items-center bg-gray-100 p-2.5 rounded mb-5 font-semibold text-[9px]">
-                    <div><span className="text-gray-500">Período:</span> {formatDateBRL(proposal.start_date)} à {formatDateBRL(proposal.end_date)}</div>
-                    <div><span className="text-gray-500">Condição:</span> LOCAÇÃO</div>
-                    <div className="text-right text-emerald-700 font-extrabold text-[10px]">Total Proposta: R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
+                  <div className="flex items-center gap-2 bg-gray-100 p-2.5 rounded mb-5 font-semibold text-[9px]">
+                    <div className="flex-1"><span className="text-gray-500">Período:</span> {formatDateBRL(proposal.start_date)} à {formatDateBRL(proposal.end_date)}</div>
+                    <div className="flex-1"><span className="text-gray-500">Condição:</span> LOCAÇÃO</div>
+                    <div className="flex-1 text-right text-emerald-700 font-extrabold text-[10px]">Total Proposta: R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
                   </div>
 
                   {/* Complementary Costs Table */}
                   <div className="mb-5">
                     <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Valores Complementares</div>
-                    <table className="w-full border-collapse [&_td]:align-middle [&_th]:align-middle">
+                    <table className="w-full border-collapse">
                       <thead>
                         <tr className="bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
-                          <th className="p-1.5 text-[8px]">Item</th>
-                          <th className="p-1.5 text-[8px]">Código</th>
-                          <th className="p-1.5 text-[8px]">Descrição</th>
-                          <th className="p-1.5 text-[8px] text-right">Valor</th>
+                          <th className="p-1.5 text-[8px] align-middle">Item</th>
+                          <th className="p-1.5 text-[8px] align-middle">Código</th>
+                          <th className="p-1.5 text-[8px] align-middle">Descrição</th>
+                          <th className="p-1.5 text-[8px] align-middle text-right">Valor</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr className="border-b border-gray-200">
-                          <td className="p-1.5">1</td>
-                          <td className="p-1.5">009</td>
-                          <td className="p-1.5 font-semibold text-gray-800">FRETE ENTREGA</td>
-                          <td className="p-1.5 text-right font-bold text-gray-800">R$ {deliveryFreight}</td>
+                          <td className="p-1.5 align-middle">1</td>
+                          <td className="p-1.5 align-middle">009</td>
+                          <td className="p-1.5 align-middle font-semibold text-gray-800">FRETE ENTREGA</td>
+                          <td className="p-1.5 align-middle text-right font-bold text-gray-800">R$ {deliveryFreight}</td>
                         </tr>
                         <tr className="border-b border-gray-200">
-                          <td className="p-1.5">2</td>
-                          <td className="p-1.5">010</td>
-                          <td className="p-1.5 font-semibold text-gray-800">FRETE RETIRADA</td>
-                          <td className="p-1.5 text-right font-bold text-gray-800">R$ {retrievalFreight}</td>
+                          <td className="p-1.5 align-middle">2</td>
+                          <td className="p-1.5 align-middle">010</td>
+                          <td className="p-1.5 align-middle font-semibold text-gray-800">FRETE RETIRADA</td>
+                          <td className="p-1.5 align-middle text-right font-bold text-gray-800">R$ {retrievalFreight}</td>
                         </tr>
                         <tr className="bg-gray-50 font-bold border-t border-gray-300">
-                          <td colSpan={3} className="p-1.5 text-[8px] uppercase">TOTAL CUSTOS COMPLEMENTARES</td>
-                          <td className="p-1.5 text-right text-black font-extrabold">
+                          <td colSpan={3} className="p-1.5 align-middle text-[8px] uppercase">TOTAL CUSTOS COMPLEMENTARES</td>
+                          <td className="p-1.5 align-middle text-right text-black font-extrabold">
                             R$ {(
                               (parseFloat(deliveryFreight.replace(".", "").replace(",", ".")) || 0) +
                               (parseFloat(retrievalFreight.replace(".", "").replace(",", ".")) || 0)
@@ -403,7 +403,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                   {/* Leased Products Table */}
                   <div className="mb-5">
                     <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Produtos para Locação</div>
-                    <table className="w-full border-collapse table-fixed [&_td]:align-middle [&_th]:align-middle">
+                    <table className="w-full border-collapse table-fixed">
                       <colgroup>
                         <col style={{ width: "4%" }} />
                         <col style={{ width: "14%" }} />
@@ -415,32 +415,32 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                       </colgroup>
                       <thead>
                         <tr className="bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
-                          <th className="p-1.5 text-[8px]">#</th>
-                          <th className="p-1.5 text-[8px]">TAG / Patrimônio</th>
-                          <th className="p-1.5 text-[8px]">Descrição</th>
-                          <th className="p-1.5 text-[8px]">Faturamento</th>
-                          <th className="p-1.5 text-[8px] text-center">Qtd</th>
-                          <th className="p-1.5 text-[8px] text-right whitespace-nowrap">Vl. Unit.</th>
-                          <th className="p-1.5 text-[8px] text-right whitespace-nowrap">Total</th>
+                          <th className="p-1.5 align-middle text-[8px]">#</th>
+                          <th className="p-1.5 align-middle text-[8px]">TAG / Patrimônio</th>
+                          <th className="p-1.5 align-middle text-[8px]">Descrição</th>
+                          <th className="p-1.5 align-middle text-[8px]">Faturamento</th>
+                          <th className="p-1.5 align-middle text-[8px] text-center">Qtd</th>
+                          <th className="p-1.5 align-middle text-[8px] text-right whitespace-nowrap">Vl. Unit.</th>
+                          <th className="p-1.5 align-middle text-[8px] text-right whitespace-nowrap">Total</th>
                         </tr>
                       </thead>
                       <tbody>
                         {proposal.equipment_items?.map((item, idx) => (
                           <tr key={idx} className="border-b border-gray-200">
-                            <td className="p-1.5">{idx + 1}</td>
-                            <td className="p-1.5 font-bold text-gray-700">{item.equipment_code}</td>
-                            <td className="p-1.5">
+                            <td className="p-1.5 align-middle">{idx + 1}</td>
+                            <td className="p-1.5 align-middle font-bold text-gray-700">{item.equipment_code}</td>
+                            <td className="p-1.5 align-middle">
                               <span className="font-bold text-gray-900 block">{item.equipment_name.toUpperCase()}</span>
                             </td>
-                            <td className="p-1.5 text-[8px] font-bold text-gray-600 uppercase">MENSAL</td>
-                            <td className="p-1.5 text-center font-semibold">{item.qty}</td>
-                            <td className="p-1.5 text-right whitespace-nowrap">R$ {item.monthly_rate.toLocaleString("pt-BR")}</td>
-                            <td className="p-1.5 text-right font-bold whitespace-nowrap">R$ {item.total_amount.toLocaleString("pt-BR")}</td>
+                            <td className="p-1.5 align-middle text-[8px] font-bold text-gray-600 uppercase">MENSAL</td>
+                            <td className="p-1.5 align-middle text-center font-semibold">{item.qty}</td>
+                            <td className="p-1.5 align-middle text-right whitespace-nowrap">R$ {item.monthly_rate.toLocaleString("pt-BR")}</td>
+                            <td className="p-1.5 align-middle text-right font-bold whitespace-nowrap">R$ {item.total_amount.toLocaleString("pt-BR")}</td>
                           </tr>
                         ))}
                         <tr className="bg-gray-50 font-bold border-t border-gray-300">
-                          <td colSpan={6} className="p-1.5 text-[8px] uppercase">TOTAL MENSAL DOS EQUIPAMENTOS</td>
-                          <td className="p-1.5 text-right text-emerald-800 font-black whitespace-nowrap">R$ {proposal.total_amount.toLocaleString("pt-BR")}</td>
+                          <td colSpan={6} className="p-1.5 align-middle text-[8px] uppercase">TOTAL MENSAL DOS EQUIPAMENTOS</td>
+                          <td className="p-1.5 align-middle text-right text-emerald-800 font-black whitespace-nowrap">R$ {proposal.total_amount.toLocaleString("pt-BR")}</td>
                         </tr>
                       </tbody>
                     </table>
