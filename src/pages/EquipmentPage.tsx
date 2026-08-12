@@ -13,6 +13,7 @@ export const EquipmentPage: React.FC = () => {
 
   const [assetList, setAssetList] = useState<EquipmentAsset[]>([]);
   const [catalogList, setCatalogList] = useState<EquipmentCatalog[]>([]);
+  const [pricingList, setPricingList] = useState<EquipmentPricing[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
@@ -25,8 +26,6 @@ export const EquipmentPage: React.FC = () => {
     catalog_id: "",
     code: "",
     serial_number: "",
-    daily_rate_str: "100,00",
-    monthly_rate_str: "2.000,00",
     qty: 1, // Batch creation count
     status: "Available" as EquipmentStatus,
     location_current: "Pátio Central",
@@ -37,8 +36,10 @@ export const EquipmentPage: React.FC = () => {
   const loadData = async () => {
     const catalog = await SupabaseDataService.getEquipmentCatalog(organization.id);
     const assets = await SupabaseDataService.getEquipmentAssets(organization.id);
+    const pricing = await SupabaseDataService.getEquipmentPricing(organization.id);
     setCatalogList(catalog);
     setAssetList(assets);
+    setPricingList(pricing);
 
     if (catalog.length > 0 && !formData.catalog_id) {
       setFormData((prev) => ({ ...prev, catalog_id: catalog[0].id }));
@@ -65,15 +66,10 @@ export const EquipmentPage: React.FC = () => {
 
   const handleOpenEditModal = (asset: EquipmentAsset) => {
     setEditingAsset(asset);
-    const dailyRate = asset.pricing_item?.daily_rate || 0;
-    const monthlyRate = asset.pricing_item?.monthly_rate || 0;
-
     setFormData({
       catalog_id: asset.catalog_id,
       code: asset.code,
       serial_number: asset.serial_number || "",
-      daily_rate_str: dailyRate > 0 ? formatCurrencyBRL(dailyRate) : "0,00",
-      monthly_rate_str: monthlyRate > 0 ? formatCurrencyBRL(monthlyRate) : "0,00",
       qty: 1,
       status: asset.status,
       location_current: asset.location_current,
@@ -83,15 +79,10 @@ export const EquipmentPage: React.FC = () => {
 
   const handleCloneAsset = (asset: EquipmentAsset) => {
     setEditingAsset(null);
-    const dailyRate = asset.pricing_item?.daily_rate || 0;
-    const monthlyRate = asset.pricing_item?.monthly_rate || 0;
-
     setFormData({
       catalog_id: asset.catalog_id,
       code: `${asset.code}-CLONED`,
       serial_number: "",
-      daily_rate_str: dailyRate > 0 ? formatCurrencyBRL(dailyRate) : "0,00",
-      monthly_rate_str: monthlyRate > 0 ? formatCurrencyBRL(monthlyRate) : "0,00",
       qty: 1,
       status: "Available",
       location_current: asset.location_current,
@@ -111,19 +102,9 @@ export const EquipmentPage: React.FC = () => {
     try {
       setIsSaving(true);
 
-      // 1. Create or Update Pricing for this Catalog Model
-      const pricingId = editingAsset?.pricing_id || crypto.randomUUID();
-      const pricingRecord: EquipmentPricing = {
-        id: pricingId,
-        organization_id: organization.id,
-        catalog_id: formData.catalog_id,
-        daily_rate: parseCurrencyToNumber(formData.daily_rate_str),
-        monthly_rate: parseCurrencyToNumber(formData.monthly_rate_str),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      await SupabaseDataService.saveEquipmentPricing(pricingRecord);
+      // Find if there is an existing pricing record for this catalog model
+      const existingPricing = pricingList.find((p) => p.catalog_id === formData.catalog_id);
+      const pricingId = existingPricing?.id || null;
 
       // 2. Create Asset(s) linking catalog_id and pricing_id
       const quantity = editingAsset ? 1 : Math.max(1, Number(formData.qty) || 1);
@@ -378,36 +359,7 @@ export const EquipmentPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Pricing & Size configuration for this asset */}
-              <div className="p-3.5 rounded-xl bg-slate-900/90 border border-white/10 space-y-3">
-                <div className="text-xs font-bold text-tenant flex items-center gap-1.5">
-                  <Coins className="w-4 h-4 text-emerald-400" /> Tarifas de Locação
-                </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-muted-foreground mb-1 font-semibold">Tarifa Diária (R$) (Opcional)</label>
-                    <input
-                      type="text"
-                      placeholder="0,00"
-                      value={formData.daily_rate_str}
-                      onChange={(e) => setFormData({ ...formData, daily_rate_str: maskCurrencyInput(e.target.value) })}
-                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-emerald-400 font-bold focus:outline-none focus:border-tenant font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-muted-foreground mb-1 font-semibold">Tarifa Mensal (R$) *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="0,00"
-                      value={formData.monthly_rate_str}
-                      onChange={(e) => setFormData({ ...formData, monthly_rate_str: maskCurrencyInput(e.target.value) })}
-                      className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-emerald-400 font-bold focus:outline-none focus:border-tenant font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
 
               {/* Batch Quantity (only for create mode) */}
               {!editingAsset && (
