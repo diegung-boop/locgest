@@ -76,11 +76,12 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
       }
 
       const opt = {
-        margin: [8, 8, 8, 8],
+        margin: 0,
         filename: `Proposta_${proposal.proposal_number}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794 },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["avoid-all", "css", "legacy"] },
       };
 
       if (!shouldUpload) {
@@ -253,8 +254,8 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
             {/* The A4 Sheet container */}
             <div
               id="formal-proposal-pdf-content"
-              className="w-[210mm] bg-white text-black p-[15mm] text-[10px] leading-relaxed shadow-2xl relative font-sans"
-              style={{ minHeight: "297mm", color: "#111" }}
+              className="w-[210mm] bg-white text-black p-[12mm] text-[10px] leading-relaxed shadow-2xl relative font-sans"
+              style={{ color: "#111" }}
             >
 
               {/* Header Info */}
