@@ -140,9 +140,21 @@ export class SupabaseDataService {
 
   static async saveEquipmentPricing(pricing: EquipmentPricing): Promise<void> {
     try {
-      const { error } = await supabase.from("equipment_pricing").upsert(pricing);
+      const dbRecord = {
+        id: pricing.id,
+        organization_id: pricing.organization_id,
+        catalog_id: pricing.catalog_id,
+        size_dimension: pricing.size_dimension || "Padrão",
+        daily_rate: Number(pricing.daily_rate) || 0,
+        monthly_rate: Number(pricing.monthly_rate) || 0,
+        created_at: pricing.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from("equipment_pricing").upsert(dbRecord);
       if (error) {
-        const adminRes = await supabaseAdmin.from("equipment_pricing").upsert(pricing);
+        console.warn("Supabase saveEquipmentPricing notice, trying admin:", error.message);
+        const adminRes = await supabaseAdmin.from("equipment_pricing").upsert(dbRecord);
         if (adminRes.error) throw adminRes.error;
       }
     } catch (e) {
@@ -176,9 +188,22 @@ export class SupabaseDataService {
 
   static async saveEquipmentAsset(asset: EquipmentAsset): Promise<void> {
     try {
-      const { catalog_item, pricing_item, ...dbRecord } = asset as any;
+      const dbRecord = {
+        id: asset.id,
+        organization_id: asset.organization_id,
+        catalog_id: asset.catalog_id,
+        pricing_id: asset.pricing_id || null,
+        code: asset.code,
+        serial_number: asset.serial_number || null,
+        status: asset.status || "Available",
+        location_current: asset.location_current || "Pátio Central",
+        created_at: asset.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase.from("equipment_assets").upsert(dbRecord);
       if (error) {
+        console.warn("Supabase saveEquipmentAsset notice, trying admin:", error.message);
         const adminRes = await supabaseAdmin.from("equipment_assets").upsert(dbRecord);
         if (adminRes.error) throw adminRes.error;
       }

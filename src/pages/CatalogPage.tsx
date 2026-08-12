@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTenant } from "@/contexts/TenantContext";
-import { EquipmentCatalog } from "@/types/locgest";
+import { EquipmentCatalog, EquipmentPricing } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
 import { StorageService } from "@/services/storageService";
 import { Layers, Plus, Search, Camera, Edit3, X, FileText, Boxes, Loader2 } from "lucide-react";
@@ -90,29 +90,40 @@ export const CatalogPage: React.FC = () => {
     try {
       setIsSaving(true);
       const baseImage = formData.image_url || "https://images.unsplash.com/photo-1579412690850-bd41cd0af397?w=600&auto=format&fit=crop&q=80";
+      const catalogId = editingItem ? editingItem.id : crypto.randomUUID();
 
       const catalogItem: EquipmentCatalog = {
-        id: editingItem ? editingItem.id : crypto.randomUUID(),
+        id: catalogId,
         organization_id: organization.id,
         name: formData.name,
         category: formData.category,
         brand_model: formData.brand_model || null,
-        size_dimension: formData.size_dimension || "Padrão",
-        daily_rate: editingItem?.daily_rate || 0,
-        monthly_rate: editingItem?.monthly_rate || 0,
         description: formData.description || null,
         images: [baseImage],
         created_at: editingItem ? editingItem.created_at : new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
+      const pricingItem: EquipmentPricing = {
+        id: crypto.randomUUID(),
+        organization_id: organization.id,
+        catalog_id: catalogId,
+        size_dimension: formData.size_dimension || "Padrão",
+        daily_rate: 0,
+        monthly_rate: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
       await SupabaseDataService.saveEquipmentCatalog(catalogItem);
+      await SupabaseDataService.saveEquipmentPricing(pricingItem);
       await loadData();
       toast.success(editingItem ? `Modelo ${catalogItem.name} atualizado!` : `Modelo ${catalogItem.name} cadastrado no Catálogo!`);
       setFormData(initialFormState);
       setEditingItem(null);
       setShowModal(false);
     } catch (err) {
+      console.error("Error saving catalog model:", err);
       toast.error("Erro ao salvar modelo no catálogo.");
     } finally {
       setIsSaving(false);
