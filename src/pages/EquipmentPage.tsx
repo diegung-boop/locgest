@@ -167,26 +167,6 @@ export const EquipmentPage: React.FC = () => {
       setIsSaving(false);
     }
   };
-      }
-
-      await loadData();
-      toast.success(
-        editingAsset 
-          ? `Patrimônio ${formData.code.toUpperCase()} atualizado!` 
-          : quantity > 1 
-          ? `${quantity} patrimônios (${formData.code.toUpperCase()}-001 a ${formData.code.toUpperCase()}-${String(quantity).padStart(3, "0")}) cadastrados com sucesso!`
-          : `Patrimônio ${formData.code.toUpperCase()} salvo na frota!`
-      );
-
-      setFormData(initialFormState);
-      setEditingAsset(null);
-      setShowCreateModal(false);
-    } catch (err) {
-      toast.error("Erro ao salvar patrimônio.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const filteredAssets = assetList.filter((item) => {
     const catalogName = item.catalog_item?.name || "";
