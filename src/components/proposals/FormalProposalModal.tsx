@@ -249,17 +249,18 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
             </button>
           </div>
 
-          {/* Paper View Container */}
-          <div className="flex-1 overflow-y-auto bg-slate-900 border border-white/5 p-4 rounded-xl mt-3 flex justify-center">
-            {/* The A4 Sheet container */}
+          {/* Paper View Container — deliberate, symmetric tray around the sheet so it reads as
+              a page resting on a dark desk, not a stretched/cut-off panel */}
+          <div className="flex-1 overflow-y-auto bg-slate-900 border border-white/5 rounded-xl mt-3 p-6 flex justify-center">
+            {/* The A4 Sheet container: natural content height, consistent internal rhythm */}
             <div
               id="formal-proposal-pdf-content"
-              className="w-[210mm] bg-white text-black p-[12mm] text-[10px] leading-relaxed shadow-2xl relative font-sans"
+              className="w-[210mm] shrink-0 bg-white text-black p-[12mm] text-[9px] leading-relaxed shadow-2xl relative font-sans"
               style={{ color: "#111" }}
             >
 
               {/* Header Info */}
-              <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
+              <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-5">
                 <div>
                   {organization.logo_url ? (
                     <img src={organization.logo_url} alt="Logo" className="max-h-12 object-contain mb-2" />
@@ -277,12 +278,12 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               </div>
 
               {/* Prestadora e Tomador details columns */}
-              <div className="grid grid-cols-2 gap-4 mb-4 text-[8px] border-b border-gray-200 pb-3">
+              <div className="grid grid-cols-2 gap-4 mb-5 text-[8px] border-b border-gray-200 pb-4">
                 {/* Prestador */}
                 <div>
-                  <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[7.5px] mb-0.5">Locadora (Prestadora)</div>
-                  <div className="font-bold text-[9px] mb-0.5">{organization.name.toUpperCase()}</div>
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 leading-snug">
+                  <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[7.5px] mb-1">Locadora (Prestadora)</div>
+                  <div className="font-bold text-[9px] mb-1">{organization.name.toUpperCase()}</div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 leading-snug">
                     {organization.cnpj && <div><span className="font-bold">CNPJ:</span> {organization.cnpj}</div>}
                     {organization.phone && <div><span className="font-bold">Tel:</span> {organization.phone}</div>}
                     {organization.email && <div className="col-span-2"><span className="font-bold">E-mail:</span> {organization.email.toLowerCase()}</div>}
@@ -292,9 +293,9 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
 
                 {/* Tomador */}
                 <div>
-                  <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[7.5px] mb-0.5">Tomador do Serviço (Cliente)</div>
-                  <div className="font-bold text-[9px] mb-0.5">{client?.company_name?.toUpperCase() || "CLIENTE NÃO CADASTRADO"}</div>
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 leading-snug">
+                  <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[7.5px] mb-1">Tomador do Serviço (Cliente)</div>
+                  <div className="font-bold text-[9px] mb-1">{client?.company_name?.toUpperCase() || "CLIENTE NÃO CADASTRADO"}</div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 leading-snug">
                     {client?.cnpj_cpf && <div><span className="font-bold">CNPJ/CPF:</span> {client.cnpj_cpf}</div>}
                     {client?.contact_person && <div><span className="font-bold">Contato:</span> {client.contact_person}</div>}
                     {client?.phone && <div><span className="font-bold">Tel:</span> {client.phone}</div>}
@@ -305,40 +306,40 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               </div>
 
               {/* Lease Metadata Row */}
-              <div className="grid grid-cols-3 gap-2 bg-gray-100 p-2 rounded mb-4 font-semibold text-[9px]">
+              <div className="grid grid-cols-3 gap-2 bg-gray-100 p-2.5 rounded mb-5 font-semibold text-[9px]">
                 <div><span className="text-gray-500">Período:</span> {formatDateBRL(proposal.start_date)} à {formatDateBRL(proposal.end_date)}</div>
                 <div><span className="text-gray-500">Condição:</span> LOCAÇÃO</div>
                 <div className="text-right text-emerald-700 font-extrabold text-[10px]">Total Proposta: R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
               </div>
 
               {/* Complementary Costs Table */}
-              <div className="mb-4">
+              <div className="mb-5">
                 <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Valores Complementares</div>
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
-                      <th className="p-1 text-[8px]">Item</th>
-                      <th className="p-1 text-[8px]">Código</th>
-                      <th className="p-1 text-[8px]">Descrição</th>
-                      <th className="p-1 text-[8px] text-right">Valor</th>
+                      <th className="p-1.5 text-[8px]">Item</th>
+                      <th className="p-1.5 text-[8px]">Código</th>
+                      <th className="p-1.5 text-[8px]">Descrição</th>
+                      <th className="p-1.5 text-[8px] text-right">Valor</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b border-gray-200">
-                      <td className="p-1">1</td>
-                      <td className="p-1">009</td>
-                      <td className="p-1 font-semibold text-gray-800">FRETE ENTREGA</td>
-                      <td className="p-1 text-right font-bold text-gray-800">R$ {deliveryFreight}</td>
+                      <td className="p-1.5">1</td>
+                      <td className="p-1.5">009</td>
+                      <td className="p-1.5 font-semibold text-gray-800">FRETE ENTREGA</td>
+                      <td className="p-1.5 text-right font-bold text-gray-800">R$ {deliveryFreight}</td>
                     </tr>
                     <tr className="border-b border-gray-200">
-                      <td className="p-1">2</td>
-                      <td className="p-1">010</td>
-                      <td className="p-1 font-semibold text-gray-800">FRETE RETIRADA</td>
-                      <td className="p-1 text-right font-bold text-gray-800">R$ {retrievalFreight}</td>
+                      <td className="p-1.5">2</td>
+                      <td className="p-1.5">010</td>
+                      <td className="p-1.5 font-semibold text-gray-800">FRETE RETIRADA</td>
+                      <td className="p-1.5 text-right font-bold text-gray-800">R$ {retrievalFreight}</td>
                     </tr>
                     <tr className="bg-gray-50 font-bold border-t border-gray-300">
-                      <td colSpan={3} className="p-1 text-[8px] uppercase">TOTAL CUSTOS COMPLEMENTARES</td>
-                      <td className="p-1 text-right text-black font-extrabold">
+                      <td colSpan={3} className="p-1.5 text-[8px] uppercase">TOTAL CUSTOS COMPLEMENTARES</td>
+                      <td className="p-1.5 text-right text-black font-extrabold">
                         R$ {(
                           (parseFloat(deliveryFreight.replace(".", "").replace(",", ".")) || 0) +
                           (parseFloat(retrievalFreight.replace(".", "").replace(",", ".")) || 0)
@@ -350,7 +351,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               </div>
 
               {/* Leased Products Table */}
-              <div className="mb-4">
+              <div className="mb-5">
                 <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Produtos para Locação</div>
                 <table className="w-full border-collapse table-fixed">
                   <colgroup>
@@ -364,60 +365,60 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                   </colgroup>
                   <thead>
                     <tr className="bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
-                      <th className="p-1 text-[8px]">#</th>
-                      <th className="p-1 text-[8px]">TAG / Patrimônio</th>
-                      <th className="p-1 text-[8px]">Descrição</th>
-                      <th className="p-1 text-[8px]">Faturamento</th>
-                      <th className="p-1 text-[8px] text-center">Qtd</th>
-                      <th className="p-1 text-[8px] text-right whitespace-nowrap">Vl. Unit.</th>
-                      <th className="p-1 text-[8px] text-right whitespace-nowrap">Total</th>
+                      <th className="p-1.5 text-[8px]">#</th>
+                      <th className="p-1.5 text-[8px]">TAG / Patrimônio</th>
+                      <th className="p-1.5 text-[8px]">Descrição</th>
+                      <th className="p-1.5 text-[8px]">Faturamento</th>
+                      <th className="p-1.5 text-[8px] text-center">Qtd</th>
+                      <th className="p-1.5 text-[8px] text-right whitespace-nowrap">Vl. Unit.</th>
+                      <th className="p-1.5 text-[8px] text-right whitespace-nowrap">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {proposal.equipment_items?.map((item, idx) => (
                       <tr key={idx} className="border-b border-gray-200 align-top">
-                        <td className="p-1">{idx + 1}</td>
-                        <td className="p-1 font-bold text-gray-700">{item.equipment_code}</td>
-                        <td className="p-1">
+                        <td className="p-1.5">{idx + 1}</td>
+                        <td className="p-1.5 font-bold text-gray-700">{item.equipment_code}</td>
+                        <td className="p-1.5">
                           <span className="font-bold text-gray-900 block">{item.equipment_name.toUpperCase()}</span>
                         </td>
-                        <td className="p-1 text-[8px] font-bold text-gray-600 uppercase">MENSAL</td>
-                        <td className="p-1 text-center font-semibold">{item.qty}</td>
-                        <td className="p-1 text-right whitespace-nowrap">R$ {item.monthly_rate.toLocaleString("pt-BR")}</td>
-                        <td className="p-1 text-right font-bold whitespace-nowrap">R$ {item.total_amount.toLocaleString("pt-BR")}</td>
+                        <td className="p-1.5 text-[8px] font-bold text-gray-600 uppercase">MENSAL</td>
+                        <td className="p-1.5 text-center font-semibold">{item.qty}</td>
+                        <td className="p-1.5 text-right whitespace-nowrap">R$ {item.monthly_rate.toLocaleString("pt-BR")}</td>
+                        <td className="p-1.5 text-right font-bold whitespace-nowrap">R$ {item.total_amount.toLocaleString("pt-BR")}</td>
                       </tr>
                     ))}
                     <tr className="bg-gray-50 font-bold border-t border-gray-300">
-                      <td colSpan={6} className="p-1 text-[8px] uppercase">TOTAL MENSAL DOS EQUIPAMENTOS</td>
-                      <td className="p-1 text-right text-emerald-800 font-black whitespace-nowrap">R$ {proposal.total_amount.toLocaleString("pt-BR")}</td>
+                      <td colSpan={6} className="p-1.5 text-[8px] uppercase">TOTAL MENSAL DOS EQUIPAMENTOS</td>
+                      <td className="p-1.5 text-right text-emerald-800 font-black whitespace-nowrap">R$ {proposal.total_amount.toLocaleString("pt-BR")}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* Warning/Attention box */}
-              <div className="p-2 border border-amber-300 bg-amber-50 rounded text-[7px] text-amber-900 leading-normal mb-2 font-medium">
+              <div className="p-2.5 border border-amber-300 bg-amber-50 rounded text-[8px] text-amber-900 leading-relaxed mb-5 font-medium">
                 <span className="font-extrabold uppercase text-amber-700">ATENÇÃO!!!</span> O LOCAL ONDE O(S) CONTAINER(S) SERÁ(ÃO) DESCARREGADO(S) DEVERÁ SER NIVELADO E COMPACTADO, SENDO PROIBIDA A DESCARGA EM AREIA, POIS COMPROMETE A ESTRUTURA, PREJUDICANDO A ABERTURA DE PORTAS E DRENAGEM DA CHUVA, BEM COMO CAUSA DANOS AO CHASSI. SUGESTÃO: PODERÃO SER UTILIZADOS BARROTES DE MADEIRA OU BLOQUETES PREMOLDADOS NOS QUATRO CANTOS.
               </div>
 
               {/* Payment Flow */}
-              <div className="mb-2">
-                <div className="font-bold uppercase text-gray-700 text-[8px] mb-1 tracking-wider">Forma de Pagamento</div>
-                <div className="whitespace-pre-line text-gray-800 font-semibold bg-gray-50 p-2 rounded text-[8px] border border-gray-200 leading-normal font-mono">
+              <div className="mb-5">
+                <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Forma de Pagamento</div>
+                <div className="whitespace-pre-line text-gray-800 font-semibold bg-gray-50 p-2.5 rounded text-[8px] border border-gray-200 leading-relaxed font-mono">
                   {paymentFlow}
                 </div>
               </div>
 
               {/* General Observations */}
-              <div className="mb-2">
-                <div className="font-bold uppercase text-gray-700 text-[8px] mb-1 tracking-wider">Observações Gerais</div>
-                <div className="whitespace-pre-line text-gray-600 bg-gray-50 p-2 rounded text-[8.5px] leading-relaxed border border-gray-200">
+              <div className="mb-5">
+                <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Observações Gerais</div>
+                <div className="whitespace-pre-line text-gray-600 bg-gray-50 p-2.5 rounded text-[8px] leading-relaxed border border-gray-200">
                   {observations}
                 </div>
               </div>
 
               {/* Validity info and Signatures block */}
-              <div className="mt-3">
+              <div className="mt-1">
                 <div className="flex justify-between items-center text-[9px] mb-4 font-semibold">
                   <div className="text-gray-500">Validade da Proposta: <span className="text-black font-extrabold">{formatDateBRL(validityDate)}</span></div>
                   <div>Fortaleza, {new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}</div>
