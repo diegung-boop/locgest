@@ -239,6 +239,34 @@ export class SupabaseDataService {
     }
   }
 
+  // EQUIPMENT (FULL MODEL COMPATIBILITY FOR PROPOSALS & CONTRACTS)
+  static async getEquipment(orgId: string): Promise<Equipment[]> {
+    try {
+      const assets = await this.getEquipmentAssets(orgId);
+      return assets.map((asset) => ({
+        id: asset.id,
+        organization_id: asset.organization_id,
+        code: asset.code,
+        name: asset.catalog_item?.name || "Equipamento",
+        category: asset.catalog_item?.category || "Containers",
+        brand_model: asset.catalog_item?.brand_model || null,
+        description: asset.catalog_item?.description || null,
+        serial_number: asset.serial_number || null,
+        daily_rate: asset.pricing_item?.daily_rate || 0,
+        monthly_rate: asset.pricing_item?.monthly_rate || 0,
+        status: asset.status || "Available",
+        location_current: asset.location_current || "Pátio Central",
+        images: asset.catalog_item?.images || [],
+        created_at: asset.created_at,
+        updated_at: asset.updated_at,
+        catalog_item: asset.catalog_item,
+      })) as Equipment[];
+    } catch (e) {
+      console.error("Supabase getEquipment failed:", e);
+      return [];
+    }
+  }
+
   // CLIENTS
   static async getClients(orgId: string): Promise<Client[]> {
     try {
