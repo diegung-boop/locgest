@@ -75,13 +75,16 @@ export const PricingSettingsPage: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
 
+      const existingPrc = pricingList.find((p) => p.catalog_id === item.id);
+      const pricingId = existingPrc?.id || crypto.randomUUID();
+
       const pricingRecord: EquipmentPricing = {
-        id: `price-${item.id}`,
+        id: pricingId,
         organization_id: organization.id,
         catalog_id: item.id,
         daily_rate: parseCurrencyToNumber(editBuffer.daily_rate_str),
         monthly_rate: parseCurrencyToNumber(editBuffer.monthly_rate_str),
-        created_at: new Date().toISOString(),
+        created_at: existingPrc?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
