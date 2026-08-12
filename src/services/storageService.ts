@@ -47,4 +47,37 @@ export class StorageService {
       });
     }
   }
+
+  /**
+   * Uploads any file to Supabase Storage organized by organization_id
+   */
+  static async uploadFile(
+    file: File, 
+    bucket: string, 
+    organizationId: string
+  ): Promise<string> {
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `${organizationId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.warn(`Supabase Storage upload file warning (${bucket}):`, uploadError.message);
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (err) {
+      console.error("Error in StorageService.uploadFile:", err);
+      throw err;
+    }
+  }
 }

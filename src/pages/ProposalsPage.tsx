@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useTenant } from "@/contexts/TenantContext";
 import { Proposal, Contract } from "@/types/locgest";
-import { MockDataService } from "@/services/mockDataService";
 import { SupabaseDataService } from "@/services/supabaseDataService";
 import { CreateProposalModal } from "@/components/proposals/CreateProposalModal";
+import { FormalProposalModal } from "@/components/proposals/FormalProposalModal";
 import { FileText, Plus, CheckCircle, Calendar, MapPin, Layers } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ export const ProposalsPage: React.FC = () => {
   }, [organization.id]);
 
   const [showModal, setShowModal] = useState(false);
+  const [selectedFormalProp, setSelectedFormalProp] = useState<Proposal | null>(null);
 
   const handleApproveProposal = async (prop: Proposal) => {
     const updatedProp: Proposal = { ...prop, status: "Approved" };
@@ -141,16 +142,23 @@ export const ProposalsPage: React.FC = () => {
             </div>
 
             {/* Actions */}
-            {p.status !== "Approved" && (
-              <div className="flex justify-end pt-2">
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setSelectedFormalProp(p)}
+                className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-xs border border-white/10 flex items-center gap-2 transition-all"
+              >
+                <FileText className="w-4 h-4 text-tenant" /> Proposta Formal / PDF
+              </button>
+
+              {p.status !== "Approved" && (
                 <button
                   onClick={() => handleApproveProposal(p)}
                   className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all"
                 >
                   <CheckCircle className="w-4 h-4" /> Aprovar Proposta Comercial & Gerar Contrato (R$ {p.total_amount.toLocaleString("pt-BR")})
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -159,6 +167,16 @@ export const ProposalsPage: React.FC = () => {
       {showModal && (
         <CreateProposalModal
           onClose={() => setShowModal(false)}
+          onSuccess={loadData}
+        />
+      )}
+
+      {/* Modal Formal Proposal PDF */}
+      {selectedFormalProp && (
+        <FormalProposalModal
+          proposal={selectedFormalProp}
+          organization={organization}
+          onClose={() => setSelectedFormalProp(null)}
           onSuccess={loadData}
         />
       )}

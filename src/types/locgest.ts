@@ -159,6 +159,7 @@ export interface Proposal {
   requested_delivery_date: string;
   equipment_items: ProposalItem[];
   total_amount: number;
+  pdf_url?: string | null;
   notes?: string | null;
   created_at: string;
   updated_at: string;
