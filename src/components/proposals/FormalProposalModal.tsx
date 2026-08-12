@@ -316,14 +316,14 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                   <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-5">
                     <div>
                       {organization.logo_url ? (
-                        <img src={organization.logo_url} alt="Logo" className="max-h-[62px] object-contain mb-2" />
+                        <img src={organization.logo_url} alt="Logo" className="max-h-[92px] object-contain mb-2" />
                       ) : (
                         <h1 className="text-lg font-black tracking-tight text-tenant uppercase mb-1">{organization.name}</h1>
                       )}
                     </div>
                     <div className="text-right">
                       <div className="text-xs font-black text-black">PROPOSTA DE LOCAÇÃO Nº {proposal.proposal_number.replace("PROP-2026-", "")}</div>
-                      <div className="text-[9px] font-bold text-gray-600 mt-0.5">PRAZO DE {getLeaseDurationMonths()} (DOZE) MESES</div>
+                      <div className="text-[9px] font-bold text-gray-600 mt-0.5">PRAZO DE {getLeaseDurationMonths()} MES(ES)</div>
                     </div>
                   </div>
 
