@@ -3,7 +3,7 @@ import { useTenant } from "@/contexts/TenantContext";
 import { Contract, FinancialRecord } from "@/types/locgest";
 import { MockDataService } from "@/services/mockDataService";
 import { SupabaseDataService } from "@/services/supabaseDataService";
-import { ShieldCheck, FileCheck, Loader2 } from "lucide-react";
+import { ShieldCheck, FileCheck, Loader2, PackageCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export const ContractsPage: React.FC = () => {
@@ -79,6 +79,46 @@ export const ContractsPage: React.FC = () => {
     }
   };
 
+  const handleFinishContract = async (contract: Contract) => {
+    if (loadingActionId) return;
+
+    try {
+      setLoadingActionId(contract.id);
+
+      const updatedContract: Contract = { ...contract, status: "Finished" };
+      await SupabaseDataService.saveContract(updatedContract);
+
+      const today = new Date().toISOString().split("T")[0];
+
+      await Promise.all(
+        (contract.proposal?.equipment_items || []).map(async (item) => {
+          // Don't free an asset that's still committed to a different active
+          // contract covering today (e.g. it was double-booked before the
+          // availability-rule fix) — only release it if nothing else needs it.
+          const stillNeededElsewhere = contracts.some((other) => {
+            if (other.id === contract.id || other.status !== "Active") return false;
+            const hasSameAsset = other.proposal?.equipment_items?.some(
+              (otherItem) => otherItem.equipment_id === item.equipment_id
+            );
+            if (!hasSameAsset) return false;
+            return today >= other.start_date && today <= other.end_date;
+          });
+
+          if (!stillNeededElsewhere) {
+            await SupabaseDataService.updateEquipmentAssetStatus(item.equipment_id, "Available");
+          }
+        })
+      );
+
+      await loadData();
+      toast.success(`Contrato ${contract.contract_number} finalizado! Equipamento(s) devolvido(s) e disponível(is) novamente.`);
+    } catch (err) {
+      toast.error("Erro ao finalizar contrato. Tente novamente.");
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -102,9 +142,21 @@ export const ContractsPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold text-white text-base">{c.contract_number}</span>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                    c.status === "Active" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                    c.status === "Active"
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : c.status === "Finished"
+                      ? "bg-white/10 text-slate-300 border border-white/10"
+                      : c.status === "Terminated"
+                      ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                      : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                   }`}>
-                    {c.status === "Active" ? "Ativo & Assinado" : "Pendente de Assinatura"}
+                    {c.status === "Active"
+                      ? "Ativo & Assinado"
+                      : c.status === "Finished"
+                      ? "Finalizado"
+                      : c.status === "Terminated"
+                      ? "Rescindido"
+                      : "Pendente de Assinatura"}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -126,7 +178,7 @@ export const ContractsPage: React.FC = () => {
               <div className="col-span-2"><strong>Termos:</strong> {c.terms_conditions}</div>
             </div>
 
-            {c.status !== "Active" && (
+            {(c.status === "Draft" || c.status === "PendingSignature") && (
               <div className="flex justify-end pt-2 border-t border-white/5">
                 <button
                   onClick={() => handleSignAndEmitFinancials(c)}
@@ -144,6 +196,31 @@ export const ContractsPage: React.FC = () => {
                   ) : (
                     <>
                       <FileCheck className="w-4 h-4" /> Simular Assinatura & Disparar NFs + Boletos
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {c.status === "Active" && (
+              <div className="flex justify-end pt-2 border-t border-white/5">
+                <button
+                  onClick={() => handleFinishContract(c)}
+                  disabled={Boolean(loadingActionId)}
+                  title="Marca o contrato como finalizado e devolve o(s) equipamento(s) ao estoque disponível"
+                  className={`px-4 py-2 rounded-xl text-white font-bold text-xs shadow-lg flex items-center gap-2 transition-all ${
+                    loadingActionId === c.id
+                      ? "bg-white/10 cursor-not-allowed opacity-75"
+                      : "bg-slate-700 hover:bg-slate-600 shadow-black/20"
+                  }`}
+                >
+                  {loadingActionId === c.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Finalizando & Liberando Equipamento...
+                    </>
+                  ) : (
+                    <>
+                      <PackageCheck className="w-4 h-4" /> Finalizar Contrato (Equipamento Devolvido)
                     </>
                   )}
                 </button>
