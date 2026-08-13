@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useTenant } from "@/contexts/TenantContext";
 import { EquipmentCatalog, EquipmentPricing } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
-import { Coins, Search, Layers, Plus, Save, Edit3, X, Check, DollarSign, Loader2, Tag } from "lucide-react";
+import { Coins, Search, Layers, Plus, Save, Edit3, X, Check, DollarSign, Loader2, Tag, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrencyBRL, maskCurrencyInput, parseCurrencyToNumber } from "@/utils/masks";
 
 export const PricingSettingsPage: React.FC = () => {
-  const { organization } = useTenant();
+  const { organization, refreshOrganization } = useTenant();
   const [catalogList, setCatalogList] = useState<EquipmentCatalog[]>([]);
   const [pricingList, setPricingList] = useState<EquipmentPricing[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -15,6 +15,7 @@ export const PricingSettingsPage: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [savingItemIds, setSavingItemIds] = useState<Record<string, boolean>>({});
+  const [isSavingAvailabilityRule, setIsSavingAvailabilityRule] = useState(false);
 
   // Editing buffer state for inline row edits using masked string inputs
   const [editBuffer, setEditBuffer] = useState<{
@@ -49,6 +50,32 @@ export const PricingSettingsPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [organization.id]);
+
+  // Treat unset (e.g. pre-migration rows) as enabled, matching the DB default.
+  const isAvailabilityRuleEnabled = organization.require_equipment_availability !== false;
+
+  const handleToggleAvailabilityRule = async () => {
+    if (isSavingAvailabilityRule) return;
+    const nextValue = !isAvailabilityRuleEnabled;
+    try {
+      setIsSavingAvailabilityRule(true);
+      await SupabaseDataService.saveOrganization({
+        ...organization,
+        require_equipment_availability: nextValue,
+        updated_at: new Date().toISOString(),
+      });
+      await refreshOrganization();
+      toast.success(
+        nextValue
+          ? "Regra de disponibilidade ativada: propostas só oferecerão equipamentos disponíveis."
+          : "Regra de disponibilidade desativada: todas as propostas poderão oferecer todo o estoque (exceto Uso Interno)."
+      );
+    } catch (err) {
+      toast.error("Erro ao atualizar a regra de disponibilidade.");
+    } finally {
+      setIsSavingAvailabilityRule(false);
+    }
+  };
 
   const handleStartEdit = (item: EquipmentCatalog) => {
     setEditingId(item.id);
@@ -181,6 +208,50 @@ export const PricingSettingsPage: React.FC = () => {
           className="px-4 py-2.5 rounded-xl bg-tenant text-white text-xs font-bold shadow-lg shadow-tenant/20 hover:opacity-90 transition-all flex items-center gap-2 whitespace-nowrap shrink-0"
         >
           <Plus className="w-4 h-4" /> Novo Modelo & Tarifa
+        </button>
+      </div>
+
+      {/* Availability Rule Toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl glass-card border border-white/10">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-tenant/20 border border-tenant/30 flex items-center justify-center text-tenant shrink-0 mt-0.5">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-white">Condicionar Propostas à Disponibilidade dos Equipamentos</div>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+              Quando ativa, uma proposta só pode incluir um equipamento se ele estiver <strong>Disponível</strong> ou se um contrato vigente sobre ele encerrar antes da data solicitada pelo cliente. Vale para todo o estoque da organização, exceto itens de <strong>Uso Interno</strong> (nunca disponibilizados). Quando desativada, todo o estoque (exceto Uso Interno) pode ser ofertado livremente.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isAvailabilityRuleEnabled}
+          disabled={isSavingAvailabilityRule}
+          onClick={handleToggleAvailabilityRule}
+          className={`shrink-0 self-start sm:self-center flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-all disabled:opacity-60 ${
+            isAvailabilityRuleEnabled
+              ? "bg-emerald-500/10 border-emerald-500/30"
+              : "bg-white/5 border-white/10"
+          }`}
+        >
+          <span className={`text-xs font-bold ${isAvailabilityRuleEnabled ? "text-emerald-400" : "text-muted-foreground"}`}>
+            {isAvailabilityRuleEnabled ? "Ativada" : "Desativada"}
+          </span>
+          <span
+            className={`relative w-10 h-5 rounded-full transition-colors ${
+              isAvailabilityRuleEnabled ? "bg-emerald-500" : "bg-white/15"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-transform ${
+                isAvailabilityRuleEnabled ? "translate-x-[20px]" : "translate-x-0"
+              }`}
+            />
+          </span>
+          {isSavingAvailabilityRule && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
         </button>
       </div>
 

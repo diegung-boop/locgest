@@ -49,6 +49,15 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
     if (eq.status === "Interno") {
       return false;
     }
+
+    // Org-level opt-out: skip the status/contract/maintenance availability
+    // computation entirely and offer the full stock (Interno excluded above,
+    // since that exclusion is independent of this rule). Default (flag unset
+    // or true) keeps the rule enforced.
+    if (organization.require_equipment_availability === false) {
+      return true;
+    }
+
     if (eq.status === "Available") {
       return true;
     }

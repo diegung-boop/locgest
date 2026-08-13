@@ -25,6 +25,10 @@ export interface Organization {
   address_city?: string | null;
   address_estate?: string | null;
   address_zipcode?: string | null;
+  // Whether proposal creation restricts equipment selection to what the
+  // availability rule (status + contract/maintenance date check) allows.
+  // Defaults to true (rule enforced) — see CreateProposalModal.isEquipmentAvailable.
+  require_equipment_availability: boolean;
   created_at: string;
   updated_at: string;
 }
