@@ -316,17 +316,17 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                 <div
                   ref={sheetRef}
                   id="formal-proposal-pdf-content"
-                  className="w-[210mm] bg-white text-black p-[12mm] text-[9px] leading-relaxed shadow-2xl relative font-sans"
+                  className="w-[210mm] bg-white text-black p-[10mm] text-[9px] leading-relaxed shadow-2xl relative font-sans"
                   style={{ color: "#111" }}
                 >
 
                   {/* Header Info */}
-                  <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-5">
+                  <div className="flex justify-between items-center border-b-2 border-black pb-2.5 mb-4">
                     <div>
                       {organization.logo_url ? (
-                        <img src={organization.logo_url} alt="Logo" className="max-h-[78px] object-contain mb-2" />
+                        <img src={organization.logo_url} alt="Logo" className="max-h-[52px] object-contain" />
                       ) : (
-                        <h1 className="text-lg font-black tracking-tight text-tenant uppercase mb-1">{organization.name}</h1>
+                        <h1 className="text-base font-black tracking-tight text-tenant uppercase">{organization.name}</h1>
                       )}
                     </div>
                     <div className="text-right">
@@ -336,7 +336,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                   </div>
 
                   {/* Prestadora e Tomador details columns */}
-                  <div className="grid grid-cols-2 gap-4 mb-5 text-[8px] border-b border-gray-200 pb-4">
+                  <div className="grid grid-cols-2 gap-4 mb-4 text-[8px] border-b border-gray-200 pb-3">
                     {/* Prestador */}
                     <div>
                       <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[7.5px] mb-1">Locadora (Prestadora)</div>
@@ -395,113 +395,105 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                   </div>
 
                   {/* Lease Metadata Row */}
-                  <div className="flex items-center gap-2 bg-gray-100 p-2.5 rounded mb-5 font-semibold text-[9px]">
+                  <div className="flex items-center gap-2 bg-gray-100 p-2 rounded mb-4 font-semibold text-[9px]">
                     <div className="flex-1"><span className="text-gray-500">Período:</span> {formatDateBRL(proposal.start_date)} à {formatDateBRL(proposal.end_date)}</div>
                     <div className="flex-1"><span className="text-gray-500">Condição:</span> LOCAÇÃO</div>
                     <div className="flex-1 text-right text-emerald-700 font-extrabold text-[10px]">Total Proposta: R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
                   </div>
 
-                  {/* Complementary Costs Table */}
-                  <div className="mb-5">
+                  {/*
+                    Both "tables" below are built with flexbox rows/cells instead of real
+                    <table>/<td> markup. html2canvas (the PDF export engine) has a known,
+                    documented bug where it ignores `vertical-align` on table cells — the
+                    only way to guarantee vertical centering survives into the exported PDF
+                    is to do the centering via flexbox `items-center`, which html2canvas
+                    renders correctly since it's just normal box positioning.
+                  */}
+
+                  {/* Complementary Costs "Table" */}
+                  <div className="mb-4">
                     <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Valores Complementares</div>
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
-                          <th className="p-1.5 text-[8px] align-middle">Item</th>
-                          <th className="p-1.5 text-[8px] align-middle">Código</th>
-                          <th className="p-1.5 text-[8px] align-middle">Descrição</th>
-                          <th className="p-1.5 text-[8px] align-middle text-right">Valor</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-gray-200">
-                          <td className="p-1.5 align-middle">1</td>
-                          <td className="p-1.5 align-middle">009</td>
-                          <td className="p-1.5 align-middle font-semibold text-gray-800">FRETE ENTREGA</td>
-                          <td className="p-1.5 align-middle text-right font-bold text-gray-800">R$ {deliveryFreight}</td>
-                        </tr>
-                        <tr className="border-b border-gray-200">
-                          <td className="p-1.5 align-middle">2</td>
-                          <td className="p-1.5 align-middle">010</td>
-                          <td className="p-1.5 align-middle font-semibold text-gray-800">FRETE RETIRADA</td>
-                          <td className="p-1.5 align-middle text-right font-bold text-gray-800">R$ {retrievalFreight}</td>
-                        </tr>
-                        <tr className="bg-gray-50 font-bold border-t border-gray-300">
-                          <td colSpan={3} className="p-1.5 align-middle text-[8px] uppercase">TOTAL CUSTOS COMPLEMENTARES</td>
-                          <td className="p-1.5 align-middle text-right text-black font-extrabold">
-                            R$ {(
-                              (parseFloat(deliveryFreight.replace(".", "").replace(",", ".")) || 0) +
-                              (parseFloat(retrievalFreight.replace(".", "").replace(",", ".")) || 0)
-                            ).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <div className="w-full text-[8px]">
+                      <div className="flex items-center bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
+                        <div className="w-[8%] shrink-0 p-1.5">Item</div>
+                        <div className="w-[15%] shrink-0 p-1.5">Código</div>
+                        <div className="w-[52%] shrink-0 p-1.5">Descrição</div>
+                        <div className="w-[25%] shrink-0 p-1.5 text-right">Valor</div>
+                      </div>
+                      <div className="flex items-center border-b border-gray-200">
+                        <div className="w-[8%] shrink-0 p-1.5">1</div>
+                        <div className="w-[15%] shrink-0 p-1.5">009</div>
+                        <div className="w-[52%] shrink-0 p-1.5 font-semibold text-gray-800">FRETE ENTREGA</div>
+                        <div className="w-[25%] shrink-0 p-1.5 text-right font-bold text-gray-800">R$ {deliveryFreight}</div>
+                      </div>
+                      <div className="flex items-center border-b border-gray-200">
+                        <div className="w-[8%] shrink-0 p-1.5">2</div>
+                        <div className="w-[15%] shrink-0 p-1.5">010</div>
+                        <div className="w-[52%] shrink-0 p-1.5 font-semibold text-gray-800">FRETE RETIRADA</div>
+                        <div className="w-[25%] shrink-0 p-1.5 text-right font-bold text-gray-800">R$ {retrievalFreight}</div>
+                      </div>
+                      <div className="flex items-center bg-gray-50 font-bold border-t border-gray-300">
+                        <div className="w-[75%] shrink-0 p-1.5 uppercase">TOTAL CUSTOS COMPLEMENTARES</div>
+                        <div className="w-[25%] shrink-0 p-1.5 text-right text-black font-extrabold">
+                          R$ {(
+                            (parseFloat(deliveryFreight.replace(".", "").replace(",", ".")) || 0) +
+                            (parseFloat(retrievalFreight.replace(".", "").replace(",", ".")) || 0)
+                          ).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Leased Products Table */}
-                  <div className="mb-5">
+                  {/* Leased Products "Table" */}
+                  <div className="mb-4">
                     <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Produtos para Locação</div>
-                    <table className="w-full border-collapse table-fixed">
-                      <colgroup>
-                        <col style={{ width: "4%" }} />
-                        <col style={{ width: "14%" }} />
-                        <col style={{ width: "42%" }} />
-                        <col style={{ width: "12%" }} />
-                        <col style={{ width: "6%" }} />
-                        <col style={{ width: "11%" }} />
-                        <col style={{ width: "11%" }} />
-                      </colgroup>
-                      <thead>
-                        <tr className="bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
-                          <th className="p-1.5 align-middle text-[8px]">#</th>
-                          <th className="p-1.5 align-middle text-[8px]">TAG / Patrimônio</th>
-                          <th className="p-1.5 align-middle text-[8px]">Descrição</th>
-                          <th className="p-1.5 align-middle text-[8px]">Faturamento</th>
-                          <th className="p-1.5 align-middle text-[8px] text-center">Qtd</th>
-                          <th className="p-1.5 align-middle text-[8px] text-right whitespace-nowrap">Vl. Unit.</th>
-                          <th className="p-1.5 align-middle text-[8px] text-right whitespace-nowrap">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {proposal.equipment_items?.map((item, idx) => (
-                          <tr key={idx} className="border-b border-gray-200">
-                            <td className="p-1.5 align-middle">{idx + 1}</td>
-                            <td className="p-1.5 align-middle font-bold text-gray-700">{item.equipment_code}</td>
-                            <td className="p-1.5 align-middle">
-                              <span className="font-bold text-gray-900 block">{item.equipment_name.toUpperCase()}</span>
-                            </td>
-                            <td className="p-1.5 align-middle text-[8px] font-bold text-gray-600 uppercase">MENSAL</td>
-                            <td className="p-1.5 align-middle text-center font-semibold">{item.qty}</td>
-                            <td className="p-1.5 align-middle text-right whitespace-nowrap">R$ {item.monthly_rate.toLocaleString("pt-BR")}</td>
-                            <td className="p-1.5 align-middle text-right font-bold whitespace-nowrap">R$ {item.total_amount.toLocaleString("pt-BR")}</td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-50 font-bold border-t border-gray-300">
-                          <td colSpan={6} className="p-1.5 align-middle text-[8px] uppercase">TOTAL MENSAL DOS EQUIPAMENTOS</td>
-                          <td className="p-1.5 align-middle text-right text-emerald-800 font-black whitespace-nowrap">R$ {proposal.total_amount.toLocaleString("pt-BR")}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <div className="w-full text-[8px]">
+                      <div className="flex items-center bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
+                        <div className="w-[4%] shrink-0 p-1.5">#</div>
+                        <div className="w-[14%] shrink-0 p-1.5">TAG / Patrimônio</div>
+                        <div className="w-[42%] shrink-0 p-1.5">Descrição</div>
+                        <div className="w-[12%] shrink-0 p-1.5">Faturamento</div>
+                        <div className="w-[6%] shrink-0 p-1.5 text-center">Qtd</div>
+                        <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">Vl. Unit.</div>
+                        <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">Total</div>
+                      </div>
+                      {proposal.equipment_items?.map((item, idx) => (
+                        <div key={idx} className="flex items-center border-b border-gray-200">
+                          <div className="w-[4%] shrink-0 p-1.5">{idx + 1}</div>
+                          <div className="w-[14%] shrink-0 p-1.5 font-bold text-gray-700">{item.equipment_code}</div>
+                          <div className="w-[42%] shrink-0 p-1.5">
+                            <span className="font-bold text-gray-900 block">{item.equipment_name.toUpperCase()}</span>
+                          </div>
+                          <div className="w-[12%] shrink-0 p-1.5 text-[8px] font-bold text-gray-600 uppercase">MENSAL</div>
+                          <div className="w-[6%] shrink-0 p-1.5 text-center font-semibold">{item.qty}</div>
+                          <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">R$ {item.monthly_rate.toLocaleString("pt-BR")}</div>
+                          <div className="w-[11%] shrink-0 p-1.5 text-right font-bold whitespace-nowrap">R$ {item.total_amount.toLocaleString("pt-BR")}</div>
+                        </div>
+                      ))}
+                      <div className="flex items-center bg-gray-50 font-bold border-t border-gray-300">
+                        <div className="w-[89%] shrink-0 p-1.5 uppercase">TOTAL MENSAL DOS EQUIPAMENTOS</div>
+                        <div className="w-[11%] shrink-0 p-1.5 text-right text-emerald-800 font-black whitespace-nowrap">R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Warning/Attention box */}
-                  <div className="p-2.5 border border-amber-300 bg-amber-50 rounded text-[8px] text-amber-900 leading-relaxed mb-5 font-medium">
+                  <div className="p-2 border border-amber-300 bg-amber-50 rounded text-[8px] text-amber-900 leading-relaxed mb-4 font-medium">
                     <span className="font-extrabold uppercase text-amber-700">ATENÇÃO!!!</span> O LOCAL ONDE O(S) CONTAINER(S) SERÁ(ÃO) DESCARREGADO(S) DEVERÁ SER NIVELADO E COMPACTADO, SENDO PROIBIDA A DESCARGA EM AREIA, POIS COMPROMETE A ESTRUTURA, PREJUDICANDO A ABERTURA DE PORTAS E DRENAGEM DA CHUVA, BEM COMO CAUSA DANOS AO CHASSI. SUGESTÃO: PODERÃO SER UTILIZADOS BARROTES DE MADEIRA OU BLOQUETES PREMOLDADOS NOS QUATRO CANTOS.
                   </div>
 
                   {/* Payment Flow */}
-                  <div className="mb-5">
+                  <div className="mb-4">
                     <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Forma de Pagamento</div>
-                    <div className="whitespace-pre-line text-gray-800 font-semibold bg-gray-50 p-2.5 rounded text-[8px] border border-gray-200 leading-relaxed font-mono">
+                    <div className="whitespace-pre-line text-gray-800 font-semibold bg-gray-50 p-2 rounded text-[8px] border border-gray-200 leading-relaxed font-mono">
                       {paymentFlow}
                     </div>
                   </div>
 
                   {/* General Observations */}
-                  <div className="mb-5">
+                  <div className="mb-4">
                     <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Observações Gerais</div>
-                    <div className="whitespace-pre-line text-gray-600 bg-gray-50 p-2.5 rounded text-[8px] leading-relaxed border border-gray-200">
+                    <div className="whitespace-pre-line text-gray-600 bg-gray-50 p-2 rounded text-[8px] leading-relaxed border border-gray-200">
                       {observations}
                     </div>
                   </div>
