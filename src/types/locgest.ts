@@ -12,13 +12,19 @@ export interface Organization {
   slug: string;
   trade_name?: string | null;
   cnpj?: string | null;
+  ie?: string | null;
   logo_url?: string | null;
   primary_color: string;
   plan: string;
   status: "active" | "suspended" | "trial";
   phone?: string | null;
   email?: string | null;
-  address?: string | null;
+  address_st?: string | null;
+  address_number?: string | null;
+  address_neighborhood?: string | null;
+  address_city?: string | null;
+  address_estate?: string | null;
+  address_zipcode?: string | null;
   created_at: string;
   updated_at: string;
 }

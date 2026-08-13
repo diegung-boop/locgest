@@ -38,7 +38,7 @@ const INITIAL_ORGANIZATIONS: Organization[] = [
     status: "active",
     phone: "(11) 3000-0000",
     email: "superadmin@locgest.com.br",
-    address: "São Paulo, SP",
+    address_st: "São Paulo, SP",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },

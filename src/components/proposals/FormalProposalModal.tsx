@@ -90,6 +90,14 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
     return `${day}/${month}/${year}`;
   };
 
+  const formatOrgAddress = (org: Organization) => {
+    const parts = [org.address_st, org.address_number, org.address_neighborhood].filter(Boolean);
+    const cityState = [org.address_city, org.address_estate].filter(Boolean).join("/");
+    if (cityState) parts.push(cityState);
+    const line = parts.join(", ");
+    return org.address_zipcode ? `${line}${line ? " - " : ""}${org.address_zipcode}` : line;
+  };
+
   const getLeaseDurationMonths = () => {
     if (proposal.equipment_items && proposal.equipment_items.length > 0) {
       return proposal.equipment_items[0].duration_months || 12;
@@ -316,7 +324,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                   <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-5">
                     <div>
                       {organization.logo_url ? (
-                        <img src={organization.logo_url} alt="Logo" className="max-h-[92px] object-contain mb-2" />
+                        <img src={organization.logo_url} alt="Logo" className="max-h-[78px] object-contain mb-2" />
                       ) : (
                         <h1 className="text-lg font-black tracking-tight text-tenant uppercase mb-1">{organization.name}</h1>
                       )}
@@ -333,11 +341,24 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                     <div>
                       <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[7.5px] mb-1">Locadora (Prestadora)</div>
                       <div className="font-bold text-[9px] mb-1">{organization.name.toUpperCase()}</div>
-                      <div className="grid grid-cols-2 gap-x-2 gap-y-1 leading-snug">
-                        {organization.cnpj && <div><span className="font-bold">CNPJ:</span> {organization.cnpj}</div>}
-                        {organization.phone && <div><span className="font-bold">Tel:</span> {organization.phone}</div>}
-                        {organization.email && <div className="col-span-2"><span className="font-bold">E-mail:</span> {organization.email.toLowerCase()}</div>}
-                        {organization.address && <div className="col-span-2"><span className="font-bold">Endereço:</span> {organization.address}</div>}
+                      <div className="space-y-0.5 leading-snug">
+                        {(organization.cnpj || organization.ie) && (
+                          <div className="flex items-center gap-1.5">
+                            {organization.cnpj && <span><span className="font-bold">CNPJ:</span> {organization.cnpj}</span>}
+                            {organization.cnpj && organization.ie && <span className="text-gray-300">|</span>}
+                            {organization.ie && <span><span className="font-bold">IE:</span> {organization.ie}</span>}
+                          </div>
+                        )}
+                        {formatOrgAddress(organization) && (
+                          <div><span className="font-bold">Endereço:</span> {formatOrgAddress(organization)}</div>
+                        )}
+                        {(organization.phone || organization.email) && (
+                          <div className="flex items-center gap-1.5">
+                            {organization.phone && <span><span className="font-bold">Tel:</span> {organization.phone}</span>}
+                            {organization.phone && organization.email && <span className="text-gray-300">|</span>}
+                            {organization.email && <span><span className="font-bold">E-mail:</span> {organization.email.toLowerCase()}</span>}
+                          </div>
+                        )}
                       </div>
                     </div>
 
