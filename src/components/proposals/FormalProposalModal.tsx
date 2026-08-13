@@ -366,12 +366,30 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                     <div>
                       <div className="font-extrabold uppercase text-gray-500 tracking-wider text-[7.5px] mb-1">Tomador do Serviço (Cliente)</div>
                       <div className="font-bold text-[9px] mb-1">{client?.company_name?.toUpperCase() || "CLIENTE NÃO CADASTRADO"}</div>
-                      <div className="grid grid-cols-2 gap-x-2 gap-y-1 leading-snug">
-                        {client?.cnpj_cpf && <div><span className="font-bold">CNPJ/CPF:</span> {client.cnpj_cpf}</div>}
-                        {client?.contact_person && <div><span className="font-bold">Contato:</span> {client.contact_person}</div>}
-                        {client?.phone && <div><span className="font-bold">Tel:</span> {client.phone}</div>}
-                        {client?.email && <div className="col-span-2"><span className="font-bold">E-mail:</span> {client.email.toLowerCase()}</div>}
-                        {client?.billing_address && <div className="col-span-2"><span className="font-bold">Endereço:</span> {client.billing_address}</div>}
+                      <div className="space-y-0.5 leading-snug">
+                        {(client?.cnpj_cpf || client?.ie) && (
+                          <div className="flex items-center gap-1.5">
+                            {client?.cnpj_cpf && <span><span className="font-bold">CNPJ/CPF:</span> {client.cnpj_cpf}</span>}
+                            {client?.cnpj_cpf && client?.ie && <span className="text-gray-300">|</span>}
+                            {client?.ie && <span><span className="font-bold">IE:</span> {client.ie}</span>}
+                          </div>
+                        )}
+                        {client?.default_job_site && (
+                          <div><span className="font-bold">Local Padrão de Obra:</span> {client.default_job_site}</div>
+                        )}
+                        {(client?.phone || client?.email) && (
+                          <div className="flex items-center gap-1.5">
+                            {client?.phone && <span><span className="font-bold">Tel:</span> {client.phone}</span>}
+                            {client?.phone && client?.email && <span className="text-gray-300">|</span>}
+                            {client?.email && <span><span className="font-bold">E-mail:</span> {client.email.toLowerCase()}</span>}
+                          </div>
+                        )}
+                        {client?.contact_person && (
+                          <div><span className="font-bold">Contato:</span> {client.contact_person}</div>
+                        )}
+                        {proposal.job_site_address && (
+                          <div><span className="font-bold">Local da Obra:</span> {proposal.job_site_address}</div>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -128,7 +128,7 @@ export interface Client {
   email: string;
   phone?: string | null;
   contact_person?: string | null;
-  state_registration?: string | null;
+  ie?: string | null;
   billing_address?: string | null;
   default_job_site?: string | null;
   notes?: string | null;
