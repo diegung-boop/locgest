@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTenant } from "@/contexts/TenantContext";
 import { EquipmentCatalog, EquipmentPricing } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
-import { Coins, Search, Layers, Plus, Save, Edit3, X, Check, DollarSign, Loader2, Tag, ShieldCheck } from "lucide-react";
+import { Coins, Search, Layers, Save, Edit3, Loader2, Tag, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrencyBRL, maskCurrencyInput, parseCurrencyToNumber } from "@/utils/masks";
 
@@ -13,7 +13,6 @@ export const PricingSettingsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const [savingItemIds, setSavingItemIds] = useState<Record<string, boolean>>({});
   const [isSavingAvailabilityRule, setIsSavingAvailabilityRule] = useState(false);
 
@@ -23,18 +22,6 @@ export const PricingSettingsPage: React.FC = () => {
     monthly_rate_str: string;
     size_dimension: string;
   }>({ daily_rate_str: "", monthly_rate_str: "", size_dimension: "" });
-
-  // Modal Add New Model state
-  const [showModal, setShowModal] = useState(false);
-  const [newModelData, setNewModelData] = useState({
-    name: "",
-    category: "Containers",
-    brand_model: "",
-    size_dimension: "20 Pés (6m)",
-    daily_rate_str: "100,00",
-    monthly_rate_str: "2.000,00",
-    description: "",
-  });
 
   const categories = ["ALL", "Containers", "Escavação", "Geradores", "Elevação", "Compactação", "Ferramentas"];
 
@@ -127,61 +114,6 @@ export const PricingSettingsPage: React.FC = () => {
     }
   };
 
-  const handleCreateModel = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSaving) return;
-    if (!newModelData.name) {
-      toast.error("Informe o Nome do Modelo de Equipamento.");
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      const catalogId = crypto.randomUUID();
-      const catalogItem: EquipmentCatalog = {
-        id: catalogId,
-        organization_id: organization.id,
-        name: newModelData.name,
-        category: newModelData.category,
-        brand_model: newModelData.brand_model || null,
-        size_dimension: newModelData.size_dimension || "Padrão",
-        description: newModelData.description || null,
-        images: ["https://images.unsplash.com/photo-1579412690850-bd41cd0af397?w=600&auto=format&fit=crop&q=80"],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const pricingRecord: EquipmentPricing = {
-        id: crypto.randomUUID(),
-        organization_id: organization.id,
-        catalog_id: catalogId,
-        daily_rate: parseCurrencyToNumber(newModelData.daily_rate_str),
-        monthly_rate: parseCurrencyToNumber(newModelData.monthly_rate_str),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      await SupabaseDataService.saveEquipmentCatalog(catalogItem);
-      await SupabaseDataService.saveEquipmentPricing(pricingRecord);
-      await loadData();
-      toast.success(`Modelo "${catalogItem.name}" cadastrado com sucesso!`);
-      setShowModal(false);
-      setNewModelData({
-        name: "",
-        category: "Containers",
-        brand_model: "",
-        size_dimension: "20 Pés (6m)",
-        daily_rate_str: "100,00",
-        monthly_rate_str: "2.000,00",
-        description: "",
-      });
-    } catch (err) {
-      toast.error("Erro ao cadastrar novo modelo.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const filteredList = catalogList.filter((item) => {
     const matchesCategory = selectedCategory === "ALL" || item.category === selectedCategory;
     const matchesSearch =
@@ -194,21 +126,13 @@ export const PricingSettingsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl glass-card border border-white/10">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Coins className="w-6 h-6 text-tenant" /> Tabela de Preços & Tarifas por Modelo
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Defina os valores padrão por <strong>Dia</strong> e por <strong>Mês</strong> conforme o <strong>tamanho / dimensão</strong> de cada equipamento (ex: Container 20 pés vs 40 pés). Estes valores alimentam automaticamente as propostas comerciais.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-tenant text-white text-xs font-bold shadow-lg shadow-tenant/20 hover:opacity-90 transition-all flex items-center gap-2 whitespace-nowrap shrink-0"
-        >
-          <Plus className="w-4 h-4" /> Novo Modelo & Tarifa
-        </button>
+      <div className="p-6 rounded-2xl glass-card border border-white/10">
+        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+          <Coins className="w-6 h-6 text-tenant" /> Tabela de Preços & Tarifas por Modelo
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Defina os valores padrão por <strong>Dia</strong> e por <strong>Mês</strong> conforme o <strong>tamanho / dimensão</strong> de cada equipamento (ex: Container 20 pés vs 40 pés). Estes valores alimentam automaticamente as propostas comerciais. Modelos de equipamento são cadastrados na tela de <strong>Catálogo</strong>; aqui você só define os preços.
+        </p>
       </div>
 
       {/* Availability Rule Toggle */}
@@ -303,7 +227,7 @@ export const PricingSettingsPage: React.FC = () => {
               {filteredList.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    Nenhum modelo de equipamento encontrado. Clique em "+ Novo Modelo & Tarifa" para cadastrar.
+                    Nenhum modelo de equipamento encontrado. Cadastre modelos na tela de Catálogo de Equipamentos.
                   </td>
                 </tr>
               ) : (
@@ -447,124 +371,6 @@ export const PricingSettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Add New Model & Pricing */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-lg p-6 rounded-2xl glass-panel border border-white/20 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Coins className="w-5 h-5 text-tenant" /> Novo Modelo de Equipamento & Tarifa
-              </h2>
-              <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateModel} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block text-muted-foreground mb-1 font-semibold">Nome do Modelo *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="ex: Container Depósito Almoxarifado"
-                  value={newModelData.name}
-                  onChange={(e) => setNewModelData({ ...newModelData, name: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground mb-1 font-semibold">Categoria *</label>
-                  <select
-                    value={newModelData.category}
-                    onChange={(e) => setNewModelData({ ...newModelData, category: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
-                  >
-                    {categories.filter((c) => c !== "ALL").map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-muted-foreground mb-1 font-semibold">Tamanho / Dimensão *</label>
-                  <input
-                    type="text"
-                    placeholder="ex: 20 pés (6m) ou 40 pés (12m)"
-                    value={newModelData.size_dimension}
-                    onChange={(e) => setNewModelData({ ...newModelData, size_dimension: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground mb-1 font-semibold">Tarifa Diária (R$) (Opcional)</label>
-                  <input
-                    type="text"
-                    placeholder="0,00"
-                    value={newModelData.daily_rate_str}
-                    onChange={(e) => setNewModelData({ ...newModelData, daily_rate_str: maskCurrencyInput(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-emerald-400 font-bold focus:outline-none focus:border-tenant font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-muted-foreground mb-1 font-semibold">Tarifa Mensal (R$) *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="0,00"
-                    value={newModelData.monthly_rate_str}
-                    onChange={(e) => setNewModelData({ ...newModelData, monthly_rate_str: maskCurrencyInput(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-emerald-400 font-bold focus:outline-none focus:border-tenant font-mono"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground mb-1">Fabricante / Marca / Modelo</label>
-                <input
-                  type="text"
-                  placeholder="ex: Reefer / Thermo King"
-                  value={newModelData.brand_model}
-                  onChange={(e) => setNewModelData({ ...newModelData, brand_model: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant"
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground mb-1">Descrição / Especificações Técnicas</label>
-                <textarea
-                  rows={2}
-                  placeholder="ex: Estrutura em aço corten, assoalho naval, travas de alta segurança..."
-                  value={newModelData.description}
-                  onChange={(e) => setNewModelData({ ...newModelData, description: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant resize-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white font-bold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-4 py-2 rounded-xl bg-tenant text-white font-bold shadow-lg shadow-tenant/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Cadastrar Modelo & Salvar Tarifas
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
