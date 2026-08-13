@@ -45,6 +45,15 @@ export const ProposalsPage: React.FC = () => {
     };
 
     await SupabaseDataService.saveContract(newContract);
+
+    // Mark each contracted asset as Rented so it stops being falsely reported as
+    // Available for the availability rule (see CreateProposalModal.isEquipmentAvailable).
+    await Promise.all(
+      (prop.equipment_items || []).map((item) =>
+        SupabaseDataService.updateEquipmentAssetStatus(item.equipment_id, "Rented")
+      )
+    );
+
     await loadData();
     toast.success(`Proposta ${prop.proposal_number} Aprovada! Contrato ${newContract.contract_number} (R$ ${prop.total_amount.toLocaleString("pt-BR")}) gerado.`);
   };

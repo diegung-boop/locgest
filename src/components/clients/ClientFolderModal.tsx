@@ -109,6 +109,14 @@ export const ClientFolderModal: React.FC<ClientFolderModalProps> = ({ client, on
 
       await SupabaseDataService.saveContract(newContract);
 
+      // Mark each contracted asset as Rented so it stops being falsely reported as
+      // Available for the availability rule (see CreateProposalModal.isEquipmentAvailable).
+      await Promise.all(
+        (prop.equipment_items || []).map((item) =>
+          SupabaseDataService.updateEquipmentAssetStatus(item.equipment_id, "Rented")
+        )
+      );
+
       // Auto generate initial financial record (NF / Boleto) linked to Contract
       await SupabaseDataService.saveFinancialRecord({
         id: crypto.randomUUID(),

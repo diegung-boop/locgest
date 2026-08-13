@@ -11,6 +11,7 @@ import {
   EquipmentCatalog,
   EquipmentPricing,
   EquipmentAsset,
+  EquipmentStatus,
   Maintenance
 } from "@/types/locgest";
 
@@ -223,6 +224,22 @@ export class SupabaseDataService {
       }
     } catch (e) {
       console.error("Supabase saveEquipmentAsset error:", e);
+      throw e;
+    }
+  }
+
+  // Partial update used to flip an asset's status (e.g. Available -> Rented) without
+  // requiring the caller to load/re-send the full EquipmentAsset record.
+  static async updateEquipmentAssetStatus(id: string, status: EquipmentStatus): Promise<void> {
+    try {
+      const patch = { status, updated_at: new Date().toISOString() };
+      const { error } = await supabase.from("equipment_assets").update(patch).eq("id", id);
+      if (error) {
+        const adminRes = await supabaseAdmin.from("equipment_assets").update(patch).eq("id", id);
+        if (adminRes.error) throw adminRes.error;
+      }
+    } catch (e) {
+      console.error("Supabase updateEquipmentAssetStatus error:", e);
       throw e;
     }
   }

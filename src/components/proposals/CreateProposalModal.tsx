@@ -58,9 +58,11 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
       return true;
     }
 
-    if (eq.status === "Available") {
-      return true;
-    }
+    // NOTE: intentionally NOT short-circuiting on eq.status === "Available" here.
+    // Nothing in the app keeps that field in sync with active contracts (it's only
+    // ever set manually), so trusting it directly would let a booked asset with a
+    // stale "Available" status bypass the contract-overlap check below entirely.
+    // The overlap check is the actual source of truth for date-based availability.
 
     if (!targetDateStr) return true;
     const targetDate = new Date(targetDateStr + "T00:00:00");
