@@ -28,8 +28,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem("locgest_active_user");
       if (saved) return JSON.parse(saved);
     } catch {}
-    const defaultUser = MockDataService.getProfiles()[0];
-    return defaultUser || null;
+    // No auto-login fallback: an app with route guards needs "no saved
+    // session" to genuinely mean logged out, otherwise / (and even /login
+    // itself) silently re-admits a demo user after a real signOut + reload.
+    // Use the "Acesso Rápido" buttons on the login screen for demo access.
+    return null;
   });
   const [loading, setLoading] = useState(true);
 

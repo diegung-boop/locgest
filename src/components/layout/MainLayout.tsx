@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, Navigate } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { Toaster } from "sonner";
+import { useAuth } from "@/contexts/AuthProvider";
 
 export const MainLayout: React.FC = () => {
   const location = useLocation();
+  const { user, loading } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Auto-manage settings submenu state based on navigation path:
@@ -27,6 +29,17 @@ export const MainLayout: React.FC = () => {
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
   };
+
+  // Route guard: while the initial Supabase session check is still running,
+  // render nothing rather than flashing the app then bouncing to /login.
+  // Once resolved, an unauthenticated user (e.g. right after signOut) is
+  // redirected — nothing previously did this, so logout never left the app.
+  if (loading) {
+    return <div className="min-h-screen bg-background" />;
+  }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">

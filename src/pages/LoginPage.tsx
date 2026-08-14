@@ -1,17 +1,24 @@
 import React, { useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useTenant } from "@/contexts/TenantContext";
 import { Building2, Lock, Mail, ArrowRight, KeyRound, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 export const LoginPage: React.FC = () => {
-  const { signInWithEmail, sendPasswordResetEmail, loginAsRole } = useAuth();
+  const { user, loading: authLoading, signInWithEmail, sendPasswordResetEmail, loginAsRole } = useAuth();
   const { organization } = useTenant();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
+
+  // Already authenticated (e.g. typed /login manually while logged in) — bounce home.
+  if (!authLoading && user) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,8 +41,16 @@ export const LoginPage: React.FC = () => {
     }
 
     setLoading(true);
-    await signInWithEmail(email, password);
+    const success = await signInWithEmail(email, password);
     setLoading(false);
+    if (success) {
+      navigate("/", { replace: true });
+    }
+  };
+
+  const handleQuickRoleLogin = (role: Parameters<typeof loginAsRole>[0]) => {
+    loginAsRole(role);
+    navigate("/", { replace: true });
   };
 
   return (
@@ -139,7 +154,7 @@ export const LoginPage: React.FC = () => {
             {["Admin", "Diretor", "Gestor", "Entregador"].map((r) => (
               <button
                 key={r}
-                onClick={() => loginAsRole(r as any)}
+                onClick={() => handleQuickRoleLogin(r as any)}
                 className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-muted-foreground hover:text-white text-[10px] font-bold border border-white/5 transition-all"
               >
                 Entrar como {r}
