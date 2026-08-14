@@ -60,7 +60,7 @@ export const UsersPage: React.FC = () => {
           role: formData.role,
           organization_id: formData.organization_id,
           phone: formData.phone || "(11) 99999-8888",
-          redirectTo: `${window.location.origin}/login`
+          redirectTo: `${window.location.origin}/accept-invite`
         }
       });
 

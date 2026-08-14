@@ -37,7 +37,7 @@ serve(async (req) => {
 
     // Invite user using admin API with dynamic redirectTo
     const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: redirectTo || 'https://location-six-sooty.vercel.app/login',
+      redirectTo: redirectTo || 'https://location-six-sooty.vercel.app/accept-invite',
       data: {
         full_name,
         role,

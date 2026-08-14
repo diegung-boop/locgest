@@ -15,6 +15,7 @@ import { UsersPage } from "@/pages/UsersPage";
 import { PricingSettingsPage } from "@/pages/PricingSettingsPage";
 import { SuperAdminPage } from "@/pages/SuperAdmin";
 import { LoginPage } from "@/pages/LoginPage";
+import { AcceptInvitePage } from "@/pages/AcceptInvitePage";
 
 export function App() {
   return (
@@ -23,6 +24,8 @@ export function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/accept-invite" element={<AcceptInvitePage />} />
+            <Route path="/reset-password" element={<AcceptInvitePage />} />
             <Route path="/" element={<MainLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="catalog" element={<CatalogPage />} />
