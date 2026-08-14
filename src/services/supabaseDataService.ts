@@ -57,11 +57,14 @@ export class SupabaseDataService {
     }
   }
 
-  // PROFILES
   static async getProfiles(orgId?: string): Promise<UserProfile[]> {
     try {
       let query = supabase.from("profiles").select("*");
-      if (orgId) query = query.eq("organization_id", orgId);
+      if (orgId) {
+        // Fetch profiles belonging to this organization OR profiles that don't belong to any organization (null)
+        // so that new/unassigned users created in the Supabase Dashboard can be linked/managed.
+        query = query.or(`organization_id.eq.${orgId},organization_id.is.null`);
+      }
       const { data, error } = await query;
       if (error) {
         console.error("Supabase getProfiles error:", error);

@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { UserProfile, UserRole } from "@/types/locgest";
 import { MockDataService } from "@/services/mockDataService";
 import { SupabaseDataService } from "@/services/supabaseDataService";
-import { Users, Plus, ShieldCheck, Mail, Phone, UserCheck, KeyRound, Edit3, X, Building2, Loader2 } from "lucide-react";
+import { Users, Plus, ShieldCheck, Mail, Phone, UserCheck, KeyRound, Edit3, X, Building2, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { maskPhone } from "@/utils/masks";
 import { supabase } from "@/integrations/supabase/client";
@@ -197,9 +197,15 @@ export const UsersPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 text-white font-medium border border-white/10 text-[11px]">
-                        <Building2 className="w-3 h-3 text-tenant" /> {userOrg.name}
-                      </span>
+                      {p.organization_id ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 text-white font-medium border border-white/10 text-[11px]">
+                          <Building2 className="w-3 h-3 text-tenant" /> {userOrg.name}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 font-bold border border-amber-500/20 text-[11px]">
+                          <AlertTriangle className="w-3 h-3 text-amber-400" /> Sem Locadora Vinculada
+                        </span>
+                      )}
                     </td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] uppercase border ${p.role === "Admin" ? "bg-red-500/20 text-red-300 border-red-500/30" :
