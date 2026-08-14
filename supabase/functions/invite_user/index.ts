@@ -26,7 +26,7 @@ serve(async (req) => {
     )
 
     // Parse request body
-    const { email, full_name, role, organization_id, phone } = await req.json()
+    const { email, full_name, role, organization_id, phone, redirectTo } = await req.json()
 
     if (!email) {
       return new Response(JSON.stringify({ error: 'Email is required' }), {
@@ -35,8 +35,9 @@ serve(async (req) => {
       })
     }
 
-    // Invite user using admin API
+    // Invite user using admin API with dynamic redirectTo
     const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: redirectTo || 'https://location-six-sooty.vercel.app/login',
       data: {
         full_name,
         role,

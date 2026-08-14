@@ -59,7 +59,8 @@ export const UsersPage: React.FC = () => {
           full_name: formData.full_name,
           role: formData.role,
           organization_id: formData.organization_id,
-          phone: formData.phone || "(11) 99999-8888"
+          phone: formData.phone || "(11) 99999-8888",
+          redirectTo: `${window.location.origin}/login`
         }
       });
 
