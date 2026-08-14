@@ -15,7 +15,11 @@ export const MainLayout: React.FC = () => {
   // If navigating to an operational route, automatically close settings submenu.
   // If navigating to a settings route, open settings submenu.
   useEffect(() => {
-    if (location.pathname.startsWith("/users") || location.pathname.startsWith("/superadmin")) {
+    if (
+      location.pathname.startsWith("/users") ||
+      location.pathname.startsWith("/pricing") ||
+      location.pathname.startsWith("/superadmin")
+    ) {
       setIsSettingsOpen(true);
     } else {
       setIsSettingsOpen(false);
