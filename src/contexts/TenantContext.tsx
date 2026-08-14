@@ -57,8 +57,13 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const isSuperAdmin = !!user?.is_super_admin;
   const effectiveOverrideOrg = isSuperAdmin ? overrideOrg : null;
 
+  // Find organization strictly by user's organization_id
+  const matchedUserOrg = user?.organization_id
+    ? allOrganizations.find((o) => o.id === user.organization_id)
+    : null;
+
   const defaultOrg = allOrganizations[0] || MockDataService.getOrganizations()[0];
-  const userOrg = allOrganizations.find((o) => o.id === user?.organization_id) || defaultOrg;
+  const userOrg = matchedUserOrg || defaultOrg;
   const activeOrg = effectiveOverrideOrg || userOrg;
 
   const isOverridden = isSuperAdmin && !!effectiveOverrideOrg && effectiveOverrideOrg.id !== userOrg.id;

@@ -93,31 +93,13 @@ export const Navbar: React.FC = () => {
             </div>
           )}
 
-          {/* Simulated Role Quick Switcher for Testing */}
-          <div className="relative group">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-tenant/15 hover:bg-tenant/25 border border-tenant/30 text-xs font-medium text-white transition-all shadow-sm">
-              <UserCheck className="w-3.5 h-3.5 text-tenant" />
-              <span className="hidden sm:inline font-normal text-muted-foreground">Perfil:</span>
-              <span className="font-bold text-tenant">{user?.role || "Admin"}</span>
-              <ChevronDown className="w-3 h-3 opacity-60" />
-            </button>
-            <div className="absolute right-0 top-full mt-1 w-52 p-1.5 rounded-xl glass-panel border border-white/10 shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-150 z-50">
-              <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase border-b border-white/5 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" /> Simular Papel (RBAC)
-              </div>
-              {roles.map((r) => (
-                <button
-                  key={r}
-                  onClick={() => loginAsRole(r)}
-                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${user?.role === r
-                      ? "bg-tenant text-white font-bold"
-                      : "hover:bg-white/5 text-muted-foreground hover:text-white"
-                    }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
+          {/* Real User Profile Badge */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-tenant/15 border border-tenant/30 text-xs font-medium text-white shadow-sm">
+            <UserCheck className="w-3.5 h-3.5 text-tenant" />
+            <span className="hidden sm:inline font-normal text-muted-foreground">
+              {user?.full_name ? `${user.full_name} •` : ""} Perfil:
+            </span>
+            <span className="font-bold text-tenant">{user?.role || "Analista"}</span>
           </div>
 
           {/* User Signout */}

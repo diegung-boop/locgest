@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Lock, User, CheckCircle2, ArrowRight, Loader2, KeyRound, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthProvider";
 
 export const AcceptInvitePage: React.FC = () => {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
@@ -120,6 +122,11 @@ export const AcceptInvitePage: React.FC = () => {
           })
           .eq("id", data.user.id);
       }
+
+      // 3. Clear any residual storage and refresh user state
+      sessionStorage.removeItem("locgest_superadmin_org_override");
+      localStorage.removeItem("locgest_active_user");
+      await refreshUser();
 
       toast.success("Conta ativada com sucesso! Bem-vindo ao LOCGEST.");
       navigate("/", { replace: true });
