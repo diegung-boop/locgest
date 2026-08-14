@@ -7,6 +7,7 @@ import { SupabaseDataService } from "@/services/supabaseDataService";
 import { Users, Plus, ShieldCheck, Mail, Phone, UserCheck, KeyRound, Edit3, X, Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { maskPhone } from "@/utils/masks";
+import { supabase } from "@/integrations/supabase/client";
 
 export const UsersPage: React.FC = () => {
   const { organization, allOrganizations } = useTenant();
@@ -51,31 +52,28 @@ export const UsersPage: React.FC = () => {
 
     try {
       setIsSaving(true);
-      const newUser: UserProfile = {
-        id: crypto.randomUUID(),
-        organization_id: formData.organization_id,
-        email: formData.email,
-        full_name: formData.full_name,
-        role: formData.role,
-        is_super_admin: false,
-        avatar_url: `https://images.unsplash.com/photo-${1534528741775 + Math.floor(Math.random() * 100)}?w=150&auto=format&fit=crop&q=80`,
-        phone: formData.phone || "(11) 99999-8888",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      
+      const { data, error } = await supabase.functions.invoke('invite_user', {
+        body: {
+          email: formData.email,
+          full_name: formData.full_name,
+          role: formData.role,
+          organization_id: formData.organization_id,
+          phone: formData.phone || "(11) 99999-8888"
+        }
+      });
 
-      await SupabaseDataService.saveProfile(newUser);
+      if (error) throw error;
+
       await loadProfiles();
 
-      // Trigger invite reset password email via Supabase Auth
-      await sendPasswordResetEmail(newUser.email);
-
       const targetOrg = allOrganizations.find((o) => o.id === formData.organization_id);
-      toast.success(`Usuário ${newUser.full_name} cadastrado na locadora ${targetOrg?.name || "selecionada"}!`);
+      toast.success(`Usuário ${formData.full_name} convidado para a locadora ${targetOrg?.name || "selecionada"} com sucesso! Um e-mail foi enviado.`);
       setShowModal(false);
       setFormData({ full_name: "", email: "", role: "Analista", organization_id: organization.id, phone: "" });
-    } catch (err) {
-      toast.error("Erro ao cadastrar usuário.");
+    } catch (err: any) {
+      console.error("Erro ao convidar usuário:", err);
+      toast.error(`Erro ao cadastrar usuário: ${err.message || 'Falha na comunicação com o servidor'}`);
     } finally {
       setIsSaving(false);
     }

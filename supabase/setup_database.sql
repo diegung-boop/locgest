@@ -39,21 +39,49 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- AUTOMATIC PROFILE CREATION TRIGGER FROM AUTH.USERS
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_org_id UUID;
+  v_is_super_admin BOOLEAN;
+  v_full_name TEXT;
+  v_role TEXT;
 BEGIN
+  -- Safe casting for organization_id
+  IF NEW.raw_user_meta_data->>'organization_id' IS NOT NULL AND NEW.raw_user_meta_data->>'organization_id' != '' AND NEW.raw_user_meta_data->>'organization_id' != 'null' THEN
+    v_org_id := (NEW.raw_user_meta_data->>'organization_id')::uuid;
+  ELSE
+    v_org_id := NULL;
+  END IF;
+
+  -- Safe casting for is_super_admin
+  IF NEW.raw_user_meta_data->>'is_super_admin' IS NOT NULL AND NEW.raw_user_meta_data->>'is_super_admin' != '' THEN
+    v_is_super_admin := (NEW.raw_user_meta_data->>'is_super_admin')::boolean;
+  ELSE
+    v_is_super_admin := false;
+  END IF;
+
+  v_full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email, 'Usuário Sem Nome');
+  v_role := COALESCE(NEW.raw_user_meta_data->>'role', 'Analista');
+
   INSERT INTO public.profiles (id, email, full_name, role, organization_id, is_super_admin)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'Analista'),
-    NULLIF(NEW.raw_user_meta_data->>'organization_id', '')::uuid,
-    COALESCE((NEW.raw_user_meta_data->>'is_super_admin')::boolean, false)
+    v_full_name,
+    v_role,
+    v_org_id,
+    v_is_super_admin
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
-    full_name = COALESCE(EXCLUDED.full_name, public.profiles.full_name),
-    role = COALESCE(EXCLUDED.role, public.profiles.role),
-    organization_id = COALESCE(EXCLUDED.organization_id, public.profiles.organization_id);
+    full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role,
+    organization_id = EXCLUDED.organization_id,
+    is_super_admin = EXCLUDED.is_super_admin;
+    
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- Log the error but don't prevent the user from being created in auth.users
+  RAISE WARNING 'Failed to create profile for new user %: %', NEW.id, SQLERRM;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
