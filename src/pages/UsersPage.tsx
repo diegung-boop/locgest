@@ -64,7 +64,16 @@ export const UsersPage: React.FC = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        let errorMsg = error.message;
+        try {
+          if (error.context && typeof error.context.json === "function") {
+            const body = await error.context.json();
+            if (body?.error) errorMsg = body.error;
+          }
+        } catch {}
+        throw new Error(errorMsg);
+      }
 
       await loadProfiles();
 
@@ -74,7 +83,7 @@ export const UsersPage: React.FC = () => {
       setFormData({ full_name: "", email: "", role: "Analista", organization_id: organization.id, phone: "" });
     } catch (err: any) {
       console.error("Erro ao convidar usuário:", err);
-      toast.error(`Erro ao cadastrar usuário: ${err.message || 'Falha na comunicação com o servidor'}`);
+      toast.error(err.message || "Erro ao cadastrar usuário.");
     } finally {
       setIsSaving(false);
     }

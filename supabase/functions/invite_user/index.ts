@@ -47,6 +47,15 @@ serve(async (req) => {
     })
 
     if (error) {
+      const errMsg = error.message.toLowerCase();
+      if (errMsg.includes('already') || errMsg.includes('registered') || errMsg.includes('exists')) {
+        return new Response(JSON.stringify({ 
+          error: `O e-mail "${email}" já está cadastrado no sistema. Se o usuário precisa de acesso ou redefinir a senha, utilize a opção "Esqueceu a senha?" na tela de login.` 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
       throw error
     }
 
@@ -56,7 +65,7 @@ serve(async (req) => {
     })
   } catch (error: any) {
     console.error('Error inviting user:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message || 'Falha ao processar convite' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
