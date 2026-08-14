@@ -62,21 +62,28 @@ BEGIN
   v_full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email, 'Usuário Sem Nome');
   v_role := COALESCE(NEW.raw_user_meta_data->>'role', 'Analista');
 
-  INSERT INTO public.profiles (id, email, full_name, role, organization_id, is_super_admin)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    v_full_name,
-    v_role,
-    v_org_id,
-    v_is_super_admin
-  )
-  ON CONFLICT (id) DO UPDATE SET
-    email = EXCLUDED.email,
-    full_name = EXCLUDED.full_name,
-    role = EXCLUDED.role,
-    organization_id = EXCLUDED.organization_id,
-    is_super_admin = EXCLUDED.is_super_admin;
+  -- If a profile with this email already exists (e.g. created with random client-side UUID previously)
+  -- we heal the record by updating its ID to match the authentic auth.users.id
+  IF EXISTS (SELECT 1 FROM public.profiles WHERE email = NEW.email) THEN
+    UPDATE public.profiles
+    SET id = NEW.id,
+        organization_id = COALESCE(v_org_id, organization_id),
+        full_name = COALESCE(v_full_name, full_name),
+        role = COALESCE(v_role, role),
+        is_super_admin = COALESCE(v_is_super_admin, is_super_admin),
+        updated_at = NOW()
+    WHERE email = NEW.email;
+  ELSE
+    INSERT INTO public.profiles (id, email, full_name, role, organization_id, is_super_admin)
+    VALUES (
+      NEW.id,
+      NEW.email,
+      v_full_name,
+      v_role,
+      v_org_id,
+      v_is_super_admin
+    );
+  END IF;
     
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN

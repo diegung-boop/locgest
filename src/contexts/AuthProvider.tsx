@@ -29,11 +29,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!sessionUser) return null;
 
     try {
-      const { data: profile, error } = await supabase
+      let { data: profile, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", sessionUser.id)
         .maybeSingle();
+
+      // Mismatched ID recovery logic (e.g. if profile was created with a client-side random UUID in older versions)
+      if (!profile && sessionUser.email) {
+        const { data: emailProfile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("email", sessionUser.email)
+          .maybeSingle();
+
+        if (emailProfile) {
+          // Heal the profile row by updating its ID to match the authentic auth user ID
+          const { data: healedProfile } = await supabase
+            .from("profiles")
+            .update({ 
+              id: sessionUser.id,
+              updated_at: new Date().toISOString() 
+            })
+            .eq("id", emailProfile.id)
+            .select()
+            .maybeSingle();
+
+          if (healedProfile) {
+            profile = healedProfile;
+            console.log("Profile ID successfully healed for user:", sessionUser.email);
+          }
+        }
+      }
 
       if (profile) {
         return profile as UserProfile;
