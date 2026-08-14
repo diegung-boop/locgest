@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Lock, User, CheckCircle2, ArrowRight, Loader2, KeyRound } from "lucide-react";
+import { Lock, User, CheckCircle2, ArrowRight, Loader2, KeyRound, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export const AcceptInvitePage: React.FC = () => {
@@ -13,41 +13,60 @@ export const AcceptInvitePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [sessionValid, setSessionValid] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user has an active session from the invite/recovery link token
-    const checkInviteSession = async () => {
+    const parseUrlAndSession = async () => {
       try {
+        const hash = window.location.hash || "";
+        const search = window.location.search || "";
+        const combined = hash + search;
+
+        // 1. Check if Supabase returned an error in the redirect URL (e.g. otp_expired, access_denied)
+        if (combined.includes("error=") || combined.includes("error_code=")) {
+          console.warn("Invite URL contains error:", combined);
+          setErrorMessage(
+            "O link de convite clicado expirou ou é inválido. Como o usuário foi recriado recentemente, envie um novo convite pela tela de Usuários para gerar um link atualizado."
+          );
+          setSessionValid(false);
+          setCheckingSession(false);
+          return;
+        }
+
+        // 2. Check active Supabase session
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.warn("Session error:", error);
         }
 
+        // Verify if session exists and is associated with the invite
         if (session?.user) {
           setEmail(session.user.email || "");
           const metadataName = session.user.user_metadata?.full_name;
-          if (metadataName) {
-            setFullName(metadataName);
+          if (metadataName && typeof metadataName === "string") {
+            setFullName(metadataName.replace(/\(SuperAdmin\)/gi, "").trim());
           }
           setSessionValid(true);
+          setCheckingSession(false);
         } else {
-          // Listen for onAuthStateChange in case token processing is async
+          // Listen for onAuthStateChange for async hash parsing
           const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
             if (s?.user) {
               setEmail(s.user.email || "");
-              if (s.user.user_metadata?.full_name) {
-                setFullName(s.user.user_metadata.full_name);
+              const metadataName = s.user.user_metadata?.full_name;
+              if (metadataName && typeof metadataName === "string") {
+                setFullName(metadataName.replace(/\(SuperAdmin\)/gi, "").trim());
               }
               setSessionValid(true);
               setCheckingSession(false);
             }
           });
 
-          // Timeout after 3 seconds if no token is captured
+          // Timeout after 2.5s if no valid invite session was established
           setTimeout(() => {
             setCheckingSession(false);
-          }, 3000);
+          }, 2500);
 
           return () => {
             subscription.unsubscribe();
@@ -55,12 +74,12 @@ export const AcceptInvitePage: React.FC = () => {
         }
       } catch (err) {
         console.error("Error inspecting invite token:", err);
-      } finally {
+        setErrorMessage("Erro ao validar convite. Solicite um novo envio.");
         setCheckingSession(false);
       }
     };
 
-    checkInviteSession();
+    parseUrlAndSession();
   }, []);
 
   const handleSetPassword = async (e: React.FormEvent) => {
@@ -79,11 +98,13 @@ export const AcceptInvitePage: React.FC = () => {
     try {
       setLoading(true);
 
+      const cleanName = fullName.trim();
+
       // 1. Update password and metadata in Supabase Auth
       const { data, error } = await supabase.auth.updateUser({
         password: password,
         data: {
-          full_name: fullName.trim() || undefined,
+          full_name: cleanName || undefined,
         }
       });
 
@@ -94,7 +115,7 @@ export const AcceptInvitePage: React.FC = () => {
         await supabase
           .from("profiles")
           .update({
-            full_name: fullName.trim() || data.user.email,
+            full_name: cleanName || data.user.email,
             updated_at: new Date().toISOString(),
           })
           .eq("id", data.user.id);
@@ -136,15 +157,15 @@ export const AcceptInvitePage: React.FC = () => {
           </p>
         </div>
 
-        {sessionValid || email ? (
+        {sessionValid && email && !errorMessage ? (
           <form onSubmit={handleSetPassword} className="space-y-4 text-xs">
             <div>
-              <label className="block text-muted-foreground mb-1 font-medium">E-mail</label>
+              <label className="block text-muted-foreground mb-1 font-medium">E-mail Convidado</label>
               <input
                 type="email"
                 disabled
                 value={email}
-                className="w-full px-3.5 py-3 rounded-xl bg-white/5 border border-white/10 text-muted-foreground cursor-not-allowed"
+                className="w-full px-3.5 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-medium cursor-not-allowed"
               />
             </div>
 
@@ -210,10 +231,16 @@ export const AcceptInvitePage: React.FC = () => {
             </button>
           </form>
         ) : (
-          <div className="text-center space-y-4 py-4">
-            <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl">
-              O link de convite pode ter expirado ou já foi utilizado. Solicite um novo convite ao administrador da locadora.
-            </p>
+          <div className="text-center space-y-4 py-2">
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs text-left space-y-2">
+              <div className="flex items-center gap-2 font-bold text-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" /> Link de Convite Expirado / Inválido
+              </div>
+              <p className="leading-relaxed">
+                {errorMessage ||
+                  "O link clicado expirou ou não é mais válido. Como o usuário antigo foi excluído, envie um novo convite pela tela de Usuários para gerar um link atualizado."}
+              </p>
+            </div>
             <button
               onClick={() => navigate("/login")}
               className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all flex items-center justify-center gap-2"
@@ -226,3 +253,4 @@ export const AcceptInvitePage: React.FC = () => {
     </div>
   );
 };
+
