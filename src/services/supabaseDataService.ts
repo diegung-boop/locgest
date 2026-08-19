@@ -379,6 +379,37 @@ export class SupabaseDataService {
   static async saveProposal(proposal: Proposal): Promise<void> {
     try {
       const { client, ...dbRecord } = proposal as any;
+
+      // Auto-generate sequential alphanumeric code (P + YYYY + MM + 5-digit sequence) for new proposals
+      if (dbRecord.proposal_number && dbRecord.proposal_number.startsWith("PROP-")) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const prefix = `P${year}${month}`;
+
+        const { data, error: queryError } = await supabase
+          .from("proposals")
+          .select("proposal_number")
+          .like("proposal_number", `${prefix}%`)
+          .order("proposal_number", { ascending: false })
+          .limit(1);
+
+        if (queryError) throw queryError;
+
+        let nextSeq = 1;
+        if (data && data.length > 0) {
+          const maxNumStr = data[0].proposal_number;
+          const seqPart = maxNumStr.substring(7);
+          const parsed = parseInt(seqPart, 10);
+          if (!isNaN(parsed)) {
+            nextSeq = parsed + 1;
+          }
+        }
+        
+        dbRecord.proposal_number = `${prefix}${String(nextSeq).padStart(5, '0')}`;
+        proposal.proposal_number = dbRecord.proposal_number;
+      }
+
       const { error } = await supabase.from("proposals").upsert(dbRecord);
       if (error) throw error;
     } catch (e) {
@@ -412,6 +443,37 @@ export class SupabaseDataService {
   static async saveContract(contract: Contract): Promise<void> {
     try {
       const { client, proposal, ...dbRecord } = contract as any;
+
+      // Auto-generate sequential alphanumeric code (C + YYYY + MM + 5-digit sequence) for new contracts
+      if (dbRecord.contract_number && dbRecord.contract_number.startsWith("CONT-")) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const prefix = `C${year}${month}`;
+
+        const { data, error: queryError } = await supabase
+          .from("contracts")
+          .select("contract_number")
+          .like("contract_number", `${prefix}%`)
+          .order("contract_number", { ascending: false })
+          .limit(1);
+
+        if (queryError) throw queryError;
+
+        let nextSeq = 1;
+        if (data && data.length > 0) {
+          const maxNumStr = data[0].contract_number;
+          const seqPart = maxNumStr.substring(7);
+          const parsed = parseInt(seqPart, 10);
+          if (!isNaN(parsed)) {
+            nextSeq = parsed + 1;
+          }
+        }
+
+        dbRecord.contract_number = `${prefix}${String(nextSeq).padStart(5, '0')}`;
+        contract.contract_number = dbRecord.contract_number;
+      }
+
       const { error } = await supabase.from("contracts").upsert(dbRecord);
       if (error) throw error;
     } catch (e) {
