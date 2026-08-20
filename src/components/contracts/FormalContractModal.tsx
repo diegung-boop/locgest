@@ -147,6 +147,10 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
         }
       }
 
+      // Save original padding and set to 0px temporarily to prevent double padding clipping on the right margin
+      const originalPadding = element.style.padding;
+      element.style.padding = "0px";
+
       // Hide HTML header and footer temporarily during PDF generation to prevent duplicate headers/footers in text flow
       const htmlHeader = document.getElementById("contract-html-header");
       const htmlFooter = document.getElementById("contract-html-footer");
@@ -225,9 +229,10 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
         await worker.save();
         toast.success("PDF baixado com sucesso!");
 
-        // Restore HTML header and footer
+        // Restore HTML header, footer and padding
         if (htmlHeader) htmlHeader.style.display = "flex";
         if (htmlFooter) htmlFooter.style.display = "block";
+        element.style.padding = originalPadding;
         setIsExporting(false);
         return;
       }
@@ -235,9 +240,10 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
       const pdfObj = await worker;
       const pdfBlob = pdfObj.output("blob");
 
-      // Restore HTML header and footer
+      // Restore HTML header, footer and padding
       if (htmlHeader) htmlHeader.style.display = "flex";
       if (htmlFooter) htmlFooter.style.display = "block";
+      element.style.padding = originalPadding;
 
       const file = new File([pdfBlob], `Contrato_${contract.contract_number}.pdf`, {
         type: "application/pdf",
@@ -264,6 +270,8 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
       const htmlFooter = document.getElementById("contract-html-footer");
       if (htmlHeader) htmlHeader.style.display = "flex";
       if (htmlFooter) htmlFooter.style.display = "block";
+      const element = document.getElementById("formal-contract-pdf-content");
+      if (element) element.style.padding = "";
     } finally {
       setIsExporting(false);
     }
