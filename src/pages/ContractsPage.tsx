@@ -3,12 +3,14 @@ import { useTenant } from "@/contexts/TenantContext";
 import { Contract, FinancialRecord } from "@/types/locgest";
 import { MockDataService } from "@/services/mockDataService";
 import { SupabaseDataService } from "@/services/supabaseDataService";
-import { ShieldCheck, FileCheck, Loader2, PackageCheck } from "lucide-react";
+import { ShieldCheck, FileCheck, Loader2, PackageCheck, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { FormalContractModal } from "@/components/contracts/FormalContractModal";
 
 export const ContractsPage: React.FC = () => {
   const { organization } = useTenant();
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [selectedContractForPDF, setSelectedContractForPDF] = useState<Contract | null>(null);
 
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
 
@@ -179,7 +181,13 @@ export const ContractsPage: React.FC = () => {
             </div>
 
             {(c.status === "Draft" || c.status === "PendingSignature") && (
-              <div className="flex justify-end pt-2 border-t border-white/5">
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                <button
+                  onClick={() => setSelectedContractForPDF(c)}
+                  className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5 text-white font-bold text-xs flex items-center gap-2 transition-all"
+                >
+                  <FileText className="w-4 h-4 text-tenant" /> Termos do Contrato (PDF)
+                </button>
                 <button
                   onClick={() => handleSignAndEmitFinancials(c)}
                   disabled={Boolean(loadingActionId)}
@@ -203,7 +211,13 @@ export const ContractsPage: React.FC = () => {
             )}
 
             {c.status === "Active" && (
-              <div className="flex justify-end pt-2 border-t border-white/5">
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                <button
+                  onClick={() => setSelectedContractForPDF(c)}
+                  className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5 text-white font-bold text-xs flex items-center gap-2 transition-all"
+                >
+                  <FileText className="w-4 h-4 text-tenant" /> Termos do Contrato (PDF)
+                </button>
                 <button
                   onClick={() => handleFinishContract(c)}
                   disabled={Boolean(loadingActionId)}
@@ -226,9 +240,29 @@ export const ContractsPage: React.FC = () => {
                 </button>
               </div>
             )}
+
+            {c.status === "Finished" && (
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                <button
+                  onClick={() => setSelectedContractForPDF(c)}
+                  className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5 text-white font-bold text-xs flex items-center gap-2 transition-all"
+                >
+                  <FileText className="w-4 h-4 text-tenant" /> Termos do Contrato (PDF)
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
+
+      {selectedContractForPDF && (
+        <FormalContractModal
+          contract={selectedContractForPDF}
+          organization={organization}
+          onClose={() => setSelectedContractForPDF(null)}
+          onSuccess={loadData}
+        />
+      )}
     </div>
   );
 };
