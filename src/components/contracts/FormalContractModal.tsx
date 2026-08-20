@@ -129,8 +129,32 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
         return;
       }
 
+      // Convert logo to base64 if available to print dynamically on jsPDF pages
+      let logoBase64: string | null = null;
+      const logoImg = document.getElementById("locadora-logo-img") as HTMLImageElement | null;
+      if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = logoImg.naturalWidth;
+          canvas.height = logoImg.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(logoImg, 0, 0);
+            logoBase64 = canvas.toDataURL("image/png");
+          }
+        } catch (e) {
+          console.warn("Could not convert logo to base64 due to CORS or load error:", e);
+        }
+      }
+
+      // Hide HTML header and footer temporarily during PDF generation to prevent duplicate headers/footers in text flow
+      const htmlHeader = document.getElementById("contract-html-header");
+      const htmlFooter = document.getElementById("contract-html-footer");
+      if (htmlHeader) htmlHeader.style.display = "none";
+      if (htmlFooter) htmlFooter.style.display = "none";
+
       const opt = {
-        margin: 0, // Zero margin since A4 page wrappers already have padding
+        margin: [25, 15, 25, 15], // Margin: Top 25mm, Bottom 25mm to reserve space for headers and footers on every page
         filename: `Contrato_${contract.contract_number}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794 },
@@ -138,16 +162,66 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
         pagebreak: { mode: ["avoid-all", "css", "legacy"] },
       };
 
+      const worker = html2pdf().from(element).set(opt).toPdf().get("pdf").then((pdf: any) => {
+        const totalPages = pdf.internal.getNumberOfPages();
+        const addressLine = formatAddress(organization).toUpperCase();
+        const phone = organization.phone || "(85) 3034 3519";
+        const email = organization.email || "financeiro@locgest.com";
+        const footerText = `${addressLine} — FONE: ${phone} — ${email}`.toUpperCase();
+
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          
+          // Draw header divider line
+          pdf.setDrawColor(200, 200, 200);
+          pdf.setLineWidth(0.3);
+          pdf.line(15, 20, 195, 20);
+
+          // Draw header Locadora Name
+          pdf.setFont("Times", "bold");
+          pdf.setFontSize(8.5);
+          pdf.setTextColor(80, 80, 80);
+          pdf.text(organization.name.toUpperCase(), 15, 16);
+
+          // Draw logo if available
+          if (logoBase64) {
+            pdf.addImage(logoBase64, "PNG", 165, 8, 30, 9);
+          }
+
+          // Draw footer divider line
+          pdf.setDrawColor(200, 200, 200);
+          pdf.setLineWidth(0.3);
+          pdf.line(15, 277, 195, 277);
+
+          // Draw footer Locadora details centered
+          pdf.setFont("Times", "bold");
+          pdf.setFontSize(7.5);
+          pdf.setTextColor(120, 120, 120);
+          pdf.text(footerText, 105, 282, { align: "center" });
+
+          // Draw page numbers centered
+          const pageNumText = `PÁGINA ${i} DE ${totalPages}`;
+          pdf.text(pageNumText, 105, 286, { align: "center" });
+        }
+      });
+
       if (!shouldUpload) {
-        html2pdf().from(element).set(opt).save();
+        await worker.save();
         toast.success("PDF baixado com sucesso!");
+        
+        // Restore HTML header and footer
+        if (htmlHeader) htmlHeader.style.display = "flex";
+        if (htmlFooter) htmlFooter.style.display = "block";
         setIsExporting(false);
         return;
       }
 
-      const worker = html2pdf().from(element).set(opt).toPdf();
-      const pdfObj = await worker.get("pdf");
+      const pdfObj = await worker;
       const pdfBlob = pdfObj.output("blob");
+
+      // Restore HTML header and footer
+      if (htmlHeader) htmlHeader.style.display = "flex";
+      if (htmlFooter) htmlFooter.style.display = "block";
 
       const file = new File([pdfBlob], `Contrato_${contract.contract_number}.pdf`, {
         type: "application/pdf",
@@ -168,6 +242,12 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
     } catch (err) {
       console.error("Error generating/uploading PDF:", err);
       toast.error("Erro ao gerar/salvar PDF.");
+      
+      // Ensure restoration on error
+      const htmlHeader = document.getElementById("contract-html-header");
+      const htmlFooter = document.getElementById("contract-html-footer");
+      if (htmlHeader) htmlHeader.style.display = "flex";
+      if (htmlFooter) htmlFooter.style.display = "block";
     } finally {
       setIsExporting(false);
     }
@@ -366,9 +446,10 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
               className="transition-transform duration-100 ease-out"
             >
               
-              {/* ON-SCREEN PREVIEW: Continuous Document (What the user sees in the modal) */}
+              {/* ON-SCREEN PREVIEW: Continuous Document (What the user sees in the modal & what html2pdf captures) */}
               <div
                 ref={sheetRef}
+                id="formal-contract-pdf-content"
                 className="w-[794px] bg-white text-black p-[50px] shadow-2xl relative space-y-[20px] contract-preview-container"
                 style={{ fontFamily: "'Times New Roman', Times, serif" }}
               >
@@ -382,12 +463,16 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                     text-align: justify;
                     text-justify: inter-word;
                     font-size: 10px;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
                   }
                   .contract-preview-container h2 {
                     font-size: 12px;
                     font-weight: bold;
                     text-align: center;
                     margin-bottom: 20px;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
                   }
                   .contract-preview-container h3 {
                     font-size: 10px;
@@ -396,11 +481,17 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                     margin-bottom: 8px;
                     border-bottom: 1px solid #ccc;
                     padding-bottom: 2px;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
+                    page-break-after: avoid;
+                    break-after: avoid;
                   }
                   .contract-preview-container table {
                     width: 100%;
                     border-collapse: collapse;
                     margin: 15px 0;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
                   }
                   .contract-preview-container table th,
                   .contract-preview-container table td {
@@ -416,22 +507,28 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                   }
                   .contract-preview-container li {
                     margin-bottom: 4px;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
                   }
                   .contract-preview-container .signature-block {
                     margin-top: 30px;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
                   }
                   .contract-preview-container .witness-block {
                     margin-top: 30px;
+                    page-break-inside: avoid;
+                    break-inside: avoid;
                   }
                 `}</style>
 
-                {/* Header */}
-                <div className="flex justify-between items-center border-b-2 border-black pb-2.5 mb-6">
+                {/* Header (Hidden dynamically during print) */}
+                <div id="contract-html-header" className="flex justify-between items-center border-b-2 border-black pb-2.5 mb-6">
                   <div className="font-black text-sm tracking-tight text-neutral-800 uppercase">
                     {organization.name}
                   </div>
                   {organization.logo_url && (
-                    <img src={organization.logo_url} alt="Logo" className="max-h-[52px] object-contain" />
+                    <img id="locadora-logo-img" src={organization.logo_url} crossOrigin="anonymous" alt="Logo" className="max-h-[52px] object-contain" />
                   )}
                 </div>
 
@@ -587,7 +684,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
 
                   <h3>CLÁUSULA SÉTIMA - RESPONSABILIDADE DO LOCATÁRIO</h3>
                   <p>
-                    1) Autorizar a entrada dos funcionários da Contratada no canteiro. A não autorização da entrada do pessoal e/ou equipamentos no local de instalação da obra poderá ensejar a cobrança da hora parada e a postergação dos serviços para data futura;
+                    1) Autorizar a entrada dos funcionários da Contratada no canteiro. A não autorização da entrada del pessoal e/ou equipamentos no local de instalação da obra poderá ensejar a cobrança da hora parada e a postergação dos serviços para data futura;
                   </p>
                   <p>
                     2) Disponibilizar pavimento radier ou piso seco, compactado e nivelado, para instalação do(s) Módulo(s) / Equipamento(s). PROIBIDA DESCARGA EM AREIA;
@@ -700,333 +797,10 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                   </div>
                 </div>
 
-                {/* Footer */}
-                <div className="border-t border-neutral-300 pt-4 mt-8 text-center text-[8px] text-neutral-500 font-bold uppercase tracking-wider">
+                {/* Footer (Hidden dynamically during print) */}
+                <div id="contract-html-footer" className="border-t border-neutral-300 pt-4 mt-8 text-center text-[8px] text-neutral-500 font-bold uppercase tracking-wider">
                   {formatAddress(organization)} — Fone: {organization.phone || "(85) 3034 3519"} — {organization.email}
                 </div>
-              </div>
-
-              {/* HIDDEN PRINT CONTAINER: Structured precisely as 7 distinct pages with custom headers and footers for PDF compilation */}
-              <div
-                id="formal-contract-pdf-content"
-                className="bg-white text-black hidden-print-container"
-                style={{
-                  fontFamily: "'Times New Roman', Times, serif",
-                  position: "absolute",
-                  left: "-9999px",
-                  top: "-9999px",
-                  width: "794px",
-                }}
-              >
-                <style>{`
-                  .hidden-print-container {
-                    color: #000 !important;
-                    line-height: 1.5;
-                  }
-                  .print-page {
-                    width: 794px;
-                    height: 1122px; /* Perfect A4 height at 96 DPI */
-                    padding: 50px;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                    box-sizing: border-box;
-                    background-color: white;
-                  }
-                  .print-page p {
-                    margin-bottom: 8px;
-                    text-align: justify;
-                    text-justify: inter-word;
-                    font-size: 10px;
-                  }
-                  .print-page h2 {
-                    font-size: 12px;
-                    font-weight: bold;
-                    text-align: center;
-                    margin-bottom: 15px;
-                  }
-                  .print-page h3 {
-                    font-size: 10px;
-                    font-weight: bold;
-                    margin-top: 12px;
-                    margin-bottom: 6px;
-                    border-bottom: 1px solid #ccc;
-                    padding-bottom: 2px;
-                  }
-                  .print-page table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin: 10px 0;
-                  }
-                  .print-page table th,
-                  .print-page table td {
-                    border: 1px solid #ccc;
-                    padding: 5px;
-                    font-size: 9px;
-                  }
-                  .print-page ul {
-                    list-style-type: disc;
-                    padding-left: 20px;
-                    margin-bottom: 8px;
-                    font-size: 10px;
-                  }
-                  .print-page li {
-                    margin-bottom: 2px;
-                  }
-                `}</style>
-
-                {/* Helper Function to render header */}
-                {(() => {
-                  const renderHeader = () => (
-                    <div className="flex justify-between items-center border-b-2 border-black pb-2 mb-4">
-                      <div className="font-black text-xs tracking-tight text-neutral-800 uppercase">
-                        {organization.name}
-                      </div>
-                      {organization.logo_url && (
-                        <img src={organization.logo_url} alt="Logo" className="max-h-[40px] object-contain" />
-                      )}
-                    </div>
-                  );
-
-                  const renderFooter = () => (
-                    <div className="border-t border-neutral-300 pt-2 text-center text-[7.5px] text-neutral-500 font-bold uppercase tracking-wider">
-                      {formatAddress(organization)} — Fone: {organization.phone || "(85) 3034 3519"} — {organization.email}
-                    </div>
-                  );
-
-                  return (
-                    <>
-                      {/* PRINT PAGE 1 */}
-                      <div className="print-page">
-                        <div>
-                          {renderHeader()}
-                          <h2>
-                            CONTRATO DE LOCAÇÃO DE BENS MÓVEIS Nº {contract.contract_number}
-                            {contract.proposal?.proposal_number && ` (Ref. Proposta nº ${contract.proposal.proposal_number})`}
-                          </h2>
-                          <div className="space-y-3 text-[10px]">
-                            <p><strong>LOCADOR:</strong></p>
-                            <p className="pl-4">
-                              <strong>{organization.name.toUpperCase()}</strong> (Nome Fantasia: {organization.trade_name || organization.name}),
-                              com sede em {formatAddress(organization)}, inscrita no CNPJ sob o nº {organization.cnpj || "Sem CNPJ"},
-                              Inscrição Estadual nº {organization.ie || "Isento"}, e-mail: {organization.email || "financeiro@locgest.com"}.<br />
-                              <strong>Representante Legal:</strong> {locadorRep}.<br />
-                              <strong>Procurador:</strong> {locadorAttorney}.
-                            </p>
-                            <p className="pt-1"><strong>LOCATÁRIO:</strong></p>
-                            <p className="pl-4">
-                              <strong>{client?.company_name?.toUpperCase() || "CLIENTE REGISTRADO"}</strong>,
-                              com sede em {client?.billing_address || "Endereço Cadastrado"}, CEP: {client?.cep || "00000-000"},
-                              inscrito no CNPJ sob o nº {client?.cnpj || "Sem CNPJ"}, e-mail: {client?.email || "cliente@email.com"}.<br />
-                              <strong>Representante Legal:</strong> {locatarioRep}.
-                            </p>
-                            <p className="pt-2"><strong>EQUIPAMENTO(S) LOCADO(S):</strong></p>
-                            <div className="pl-4 space-y-1.5">
-                              {contract.proposal?.equipment_items?.map((item, idx) => (
-                                <div key={item.id} className="border border-neutral-300 p-1.5 rounded text-[9.5px]">
-                                  <span className="font-bold">Item {idx + 1}: 01 (UM) {item.equipment_name}</span> - Categoria: {item.equipment_code}<br />
-                                  <span className="text-[8.5px] text-neutral-600">Descrição/Detalhamento: {item.equipment_name} para locação corporativa padrão.</span>
-                                </div>
-                              )) || (
-                                <div className="border border-neutral-300 p-1.5 rounded text-[9.5px]">
-                                  <span className="font-bold">Equipamentos do Contrato</span><br />
-                                  <span className="text-[8.5px] text-neutral-600">Conforme listados na proposta comercial vinculada.</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        {renderFooter()}
-                      </div>
-
-                      <div style={{ pageBreakBefore: "always" }}></div>
-
-                      {/* PRINT PAGE 2 */}
-                      <div className="print-page">
-                        <div>
-                          {renderHeader()}
-                          <div className="space-y-3 text-[10px]">
-                            <p><strong>Local da obra:</strong> {contract.proposal?.job_site_address || client?.billing_address || "Obra Indicada"}.</p>
-                            <p>Pelo presente instrumento, de um lado, o <strong>LOCADOR</strong>, devidamente qualificado no preâmbulo e de outro, o <strong>LOCATÁRIO</strong>, também qualificado acima, celebram entre si o presente Contrato de Locação, que se regerá pelas seguintes cláusulas e condições:</p>
-                            <h3>CLÁUSULA PRIMEIRA - OBJETO</h3>
-                            <p>Constitui objeto do presente Contrato de Locação o(s) bem(ns) descrito(s) no preâmbulo acima, com suas respectivas características e acessórios indicados.</p>
-                            <h3>CLÁUSULA SEGUNDA - VALOR DO OBJETO</h3>
-                            <p>O valor total do(s) Módulo(s) / Equipamento(s) descrito(s) acima é de R$ {objectValue} (cada), para os casos de perda total, extravio, bem como acidentes com danos graves, de tal forma que inviabilize a recuperação econômica de suas características originais.</p>
-                            <h3>CLÁUSULA TERCEIRA - PREÇO, PRAZO E FORMA DE PAGAMENTO</h3>
-                            <p>3.1. O valor mensal da locação do(s) equipamento(s) é de: <strong>R$ {(contract.total_value / getLeaseDurationMonths()).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> por parcela.</p>
-                            <p>3.2. A locação será por prazo determinado de <strong>{getLeaseDurationMonths()} meses</strong>, com início em {formatDateBRL(contract.start_date)} e término previsto para {formatDateBRL(contract.end_date)}.</p>
-                            <p>3.3. Não será permitida a devolução do(s) módulo(s) / equipamento(s) antes do término do período previsto na cláusula anterior, salvo pela quitação do saldo remanescente de parcelas previstas até o limite do valor global contratado.</p>
-                            <p>3.4. O <strong>LOCATÁRIO</strong> se obriga a pagar todos os aluguéis do período inicialmente previsto, mesmo em caso de devolução antecipada de parte ou da totalidade do(s) módulo(s)/equipamento(s).</p>
-                          </div>
-                        </div>
-                        {renderFooter()}
-                      </div>
-
-                      <div style={{ pageBreakBefore: "always" }}></div>
-
-                      {/* PRINT PAGE 3 */}
-                      <div className="print-page">
-                        <div>
-                          {renderHeader()}
-                          <div className="space-y-3 text-[10px]">
-                            <p>3.5. Ao final do período estabelecido no item 3.2, este contrato se renovará a cada período de 30 (trinta) dias com preços ora acertados, sem correção monetária ou reajustes, independente de infação ou índices de reajustes praticados pelo mercado, podendo quaisquer das partes se manifestar pela não renovação em face de eventual desinteresse na continuação da locação, devendo a outra parte ser notificada com antecedência mínima de 15 (quinze) dias ao término do contrato.</p>
-                            <p>3.6. A forma de pagamento será efetuada através de Boleto Bancário ou pagamento à vista (PIX ou TED), sendo:</p>
-                            
-                            <table>
-                              <thead className="bg-neutral-100">
-                                <tr>
-                                  <th>Parcela</th>
-                                  <th>Detalhamento Financeiro</th>
-                                  <th className="text-right">Data de Vencimento</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {installments.map((inst) => (
-                                  <tr key={inst.num}>
-                                    <td className="font-bold">{inst.num}ª parcela</td>
-                                    <td>{inst.label}{inst.extra}</td>
-                                    <td className="text-right font-bold">{inst.date}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-
-                            <p>3.8. O não pagamento no vencimento de qualquer parcela acarretará multa de 2% (dois por cento) e juros de mora de 0,33% a.d. (três vírgula trinta e três por cento ao dia).</p>
-                            <p>3.9. Não há incidência do I.S.S.Q.N., conforme Lei Complementar Federal nº 116/2003 e regulamentação municipal, por se tratar de locação de bens móveis pura. O <strong>LOCADOR</strong> dá ciência ao <strong>LOCATÁRIO</strong> de que este faturamento está de acordo com o Decreto nº 3000/99.</p>
-                            <h3>CLÁUSULA QUARTA - REAJUSTE</h3>
-                            <p>4.1. Para ajustar o preço à elevação dos custos dos insumos que ocorrer no período, será adotado o índice INCC acumulado a cada 12 (doze) meses da locação.</p>
-                            <p>4.2. Caso venha ocorrer defasagem acentuada do preço, em função de alterações na política econômica governamental ou devido a longo tempo de locação decorrido, poderá ocorrer novo reajuste, mediante outra negociação, para ajustar o preço às condições normais de mercado.</p>
-                          </div>
-                        </div>
-                        {renderFooter()}
-                      </div>
-
-                      <div style={{ pageBreakBefore: "always" }}></div>
-
-                      {/* PRINT PAGE 4 */}
-                      <div className="print-page">
-                        <div>
-                          {renderHeader()}
-                          <div className="space-y-3 text-[10px]">
-                            <h3>CLÁUSULA QUINTA - MANUTENÇÃO E CONSERVAÇÃO DO BEM</h3>
-                            <p>5.1. Os equipamentos objetos desta locação estão sendo entregues em perfeitas condições de uso, limpos e revisados.</p>
-                            <p>5.2. Vencido o contrato de locação, é de obrigação do <strong>LOCATÁRIO</strong> devolver o(s) Módulo(s) / Equipamento(s) em perfeitas condições de uso, ou seja, nas mesmas condições de quando o recebeu.</p>
-                            <p>5.3. O(s) Módulo(s) / Equipamento(s) deverá(ão) estar limpo(s) para devolução, caso contrário será cobrado o valor de R$ 100,00 (cem reais) para limpeza de cada módulo.</p>
-                            <p>5.4. O(s) equipamento(s) deverá(ão) ser inspecionado(s) pelo <strong>LOCATÁRIO</strong> ANTES da saída em aluguel, uma vez que o(s) mesmo(s) encontra(m)-se em perfeitas condições de uso, sem resíduos de concreto, sem nenhum tipo de rabiscos, sem avarias ou peças faltantes, neste ato assim aceito.</p>
-                            <p>5.5. Ocorrendo avarias ao bem locado ou perda total, o <strong>LOCATÁRIO</strong> se obriga a indenizar o <strong>LOCADOR</strong> pelos gastos nos serviços necessários a reparar os danos causados ou indenizar o valor total do bem, ressalvados os advindos de caso fortuito e força maior, autorizando, ainda, o <strong>LOCADOR</strong> a emitir Ficha de Compensação Bancária cobrando o valor devido.</p>
-                            <p>5.6. A indenização será calculada com base nos valores especificados no presente contrato na Cláusula Segunda.</p>
-                            <p>5.7. Não serão devidas indenizações pelo <strong>LOCATÁRIO</strong> de reparo por desgaste natural do(s) módulo(s)/equipamento(s).</p>
-                            <p>5.8. A manutenção e limpeza de filtros e aparelhos de ar condicionado serão de responsabilidade do <strong>LOCATÁRIO</strong> a partir de 03 (três) meses de locação ou, desde o início do Contrato, caso o equipamento esteja distante mais de 50 (cinquenta) Km do município de Fortaleza - Ceará.</p>
-                            <h3>CLÁUSULA SEXTA - FRETE E MONTAGEM</h3>
-                            <p>6.1. As despesas decorrentes com transporte de saída, bem como de devolução do(s) módulo(s) / equipamento(s), são por conta única e exclusiva do <strong>LOCATÁRIO</strong> (tomador), assim como seguro e a responsabilidade sobre equipamentos e terceiros durante a operação, não cabendo nenhum ônus ou responsabilidade ao <strong>LOCADOR</strong>.</p>
-                          </div>
-                        </div>
-                        {renderFooter()}
-                      </div>
-
-                      <div style={{ pageBreakBefore: "always" }}></div>
-
-                      {/* PRINT PAGE 5 */}
-                      <div className="print-page">
-                        <div>
-                          {renderHeader()}
-                          <div className="space-y-3 text-[10px]">
-                            <h3>CLÁUSULA SÉTIMA - RESPONSABILIDADE DO LOCATÁRIO</h3>
-                            <p>1) Autorizar a entrada dos funcionários da Contratada no canteiro. A não autorização da entrada do pessoal e/ou equipamentos no local de instalação da obra poderá ensejar a cobrança da hora parada e a postergação dos serviços para data futura;</p>
-                            <p>2) Disponibilizar pavimento radier ou piso seco, compactado e nivelado, para instalação do(s) Módulo(s) / Equipamento(s). PROIBIDA DESCARGA EM AREIA;</p>
-                            <p>3) Oferecer acesso livre e desimpedido para automóveis e caminhões do <strong>LOCADOR</strong> ou prepostos, até o local da instalação dos equipamentos;</p>
-                            <p>4) Não sendo possível a entrada dos veículos do <strong>LOCADOR</strong> e/ou prepostos no local da instalação dos módulos, o <strong>LOCATÁRIO</strong> fica responsável pelo transporte dos equipamentos, ferramentas, materiais e pessoal da contratada;</p>
-                            <p>5) Obtenção de licenças e alvarás; laudos ocupacionais e pagamento de taxas, junto a todos os órgãos competentes (Federal, Estadual e/ou Municipal).</p>
-                            <p className="font-bold">Instalações Elétricas:</p>
-                            <ul className="list-disc pl-4 space-y-0.5">
-                              <li>O <strong>LOCATÁRIO</strong> deve disponibilizar energia para realização da obra;</li>
-                              <li>O canteiro de obra deverá ter SPDA (Sistema de Proteção de Descarga Atmosférica);</li>
-                              <li>O <strong>LOCATÁRIO</strong> deve executar e fornecer toda a rede externa de energia até o Módulo Habitável;</li>
-                              <li>Execução e ligação de rede de lógica, CFTV e telefone são de responsabilidade da contratante.</li>
-                            </ul>
-                            <p className="font-bold">Instalações Hidráulicas:</p>
-                            <ul className="list-disc pl-4 space-y-0.5">
-                              <li>Execução de Fossas, ligação de água e saneamento são de encargo do cliente;</li>
-                              <li>Execução de caixa d'água, cisterna e/ou reservatório se necessários;</li>
-                              <li>Execução de ligação de esgoto até a rede pública ou fossas adequadas.</li>
-                            </ul>
-                            <p className="font-bold">Mobilização e Mão de Obra:</p>
-                            <p className="pl-4">a) Informar ao <strong>LOCADOR</strong>, com a devida antecedência, as exigências (documentação, exames, etc.) para que o pessoal e preposto da contratada ingressem no local onde se dará a instalação do(s) Módulo(s).</p>
-                          </div>
-                        </div>
-                        {renderFooter()}
-                      </div>
-
-                      <div style={{ pageBreakBefore: "always" }}></div>
-
-                      {/* PRINT PAGE 6 */}
-                      <div className="print-page">
-                        <div>
-                          {renderHeader()}
-                          <div className="space-y-3 text-[10px]">
-                            <p className="pl-4">b) Todos os custos decorrentes da habilitação dos veículos, funcionários e prepostos do <strong>LOCADOR</strong> para ingressar no local onde será feita a instalação dos módulos deverão ser suportados pela Contratante.</p>
-                            <h3>CLÁUSULA OITAVA - RESPONSABILIDADE DA LOCADORA</h3>
-                            <p>1) Fornecimento dos módulos habitáveis em perfeitas condições de uso e de funcionamento;</p>
-                            <p>2) A utilização de mão de obra de terceiros para a movimentação ou acoplagem e desacoplagem do módulo cancela a garantia e toda e qualquer manutenção, correrá por conta do <strong>LOCATÁRIO</strong>.</p>
-                            <h3>CLÁUSULA NONA - INADIMPLÊNCIA</h3>
-                            <p>9.1. Em havendo atraso nos pagamentos ou a não observância das cláusulas deste Contrato, o locatário autoriza o <strong>LOCADOR</strong> a retirar, sem embaraços, os bens ora locados. Eventuais custos decorrentes do inadimplemento serão cobrados junto ao <strong>LOCATÁRIO</strong>, bem como despesas com a desmobilização (frete), conforme estabelecido neste Contrato.</p>
-                            <h3>CLÁUSULA DÉCIMA - OBSERVAÇÕES</h3>
-                            <p>10.1. Informamos que só serão aceitos pedidos de coleta do(s) Módulo(s) / Equipamento(s) através de e-mail e com 02 (dois) dias úteis de antecedência mínima.</p>
-                            <p>10.2. Em caso de desistência da locação por parte do <strong>LOCATÁRIO</strong>, após este ter solicitado a reserva do bem, haverá cobrança equivalente ao previsto na Cláusula Terceira item 3.4, bem como os fretes de mobilização e/ou desmobilização, se houver(em).</p>
-                            <p>10.3. Fica expressamente proibida a sublocação, empréstimo ou cessão dos módulos habitáveis objeto deste contrato para uso de terceiros, ainda que gratuitamente, implicando no imediato cancelamento do mesmo.</p>
-                            <h3>CLÁUSULA DÉCIMA PRIMEIRA - QUANTO AO DIREITO DE PROPRIEDADE</h3>
-                            <p>11.1. Quanto ao direito de propriedade, fica preestabelecido de comum acordo que os Órgãos Municipais, Estaduais e Federais, renunciam ao direito de declarar os módulos habitáveis e as mobílias como de Direito de Utilidade Pública.</p>
-                          </div>
-                        </div>
-                        {renderFooter()}
-                      </div>
-
-                      <div style={{ pageBreakBefore: "always" }}></div>
-
-                      {/* PRINT PAGE 7 */}
-                      <div className="print-page">
-                        <div>
-                          {renderHeader()}
-                          <div className="space-y-3 text-[10px]">
-                            <p>11.2. O <strong>LOCATÁRIO</strong> reconhece e aceita que o <strong>LOCADOR</strong> é proprietário e/ou detentor dos direitos de uso do(s) módulo(s) habitável(is), não podendo o(s) mesmo(s) ser(em) oferecido(s) pelo <strong>LOCATÁRIO</strong> como garantia de suas dívidas ou a penhora, bem como não poderá permitir quaisquer ônus sobre os mesmos, sob pena de responder judicialmente por todas as despesas incorridas pelo <strong>LOCADOR</strong>, decorrentes de tais situações.</p>
-                            <h3>CLÁUSULA DÉCIMA SEGUNDA - FORO</h3>
-                            <p>Para dirimir toda e qualquer controvérsia oriunda do presente Contrato de Locação, para os quais as partes não se louvem em solução amigável, fica eleito o Foro da Cidade de {forumCity}, com renúncia expressa a qualquer outro por mais privilegiado que seja.</p>
-                            <p className="pt-1 text-center font-bold">Por estarem acordados com as condições acima estipuladas, assinam o presente contrato de locação em 02 (duas) vias de igual teor e forma.</p>
-                            <p className="text-center font-bold">{forumCity.split("(")[0].trim()}, {formatDateBRL(contractDate)}.</p>
-                            
-                            {/* Signatures */}
-                            <div className="grid grid-cols-2 gap-6 pt-6">
-                              <div className="border-t border-neutral-800 pt-1 text-center font-bold text-[8.5px]">
-                                {client?.company_name?.toUpperCase() || "LOCATÁRIO (CLIENTE)"}<br />
-                                <span className="font-normal text-neutral-600">Representante Legal</span>
-                              </div>
-                              <div className="border-t border-neutral-800 pt-1 text-center font-bold text-[8.5px]">
-                                {organization.name.toUpperCase()}<br />
-                                <span className="font-normal text-neutral-600">Locador</span>
-                              </div>
-                            </div>
-
-                            {/* Witnesses */}
-                            <div className="pt-6 text-[8.5px]">
-                              <p className="font-bold mb-2">Testemunhas:</p>
-                              <div className="grid grid-cols-2 gap-6">
-                                <div className="border-t border-neutral-800 pt-1">
-                                  <p>Nome:</p>
-                                  <p>CPF nº:</p>
-                                </div>
-                                <div className="border-t border-neutral-800 pt-1">
-                                  <p>Nome:</p>
-                                  <p>CPF nº:</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        {renderFooter()}
-                      </div>
-                    </>
-                  );
-                })()}
               </div>
 
             </div>
