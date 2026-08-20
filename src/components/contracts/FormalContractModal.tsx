@@ -343,7 +343,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-muted-foreground mb-1 font-semibold">Val. Equipamentos (R$)</label>
+                <label className="block text-muted-foreground mb-1 font-semibold">Val. Equips.  (R$)</label>
                 <input
                   type="text"
                   value={objectValue}
