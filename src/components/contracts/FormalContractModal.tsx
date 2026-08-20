@@ -291,7 +291,14 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md text-xs">
-      <div className="w-full max-w-[1440px] p-6 rounded-2xl glass-panel border border-white/20 grid grid-cols-1 lg:grid-cols-12 gap-6 max-h-[95vh] overflow-hidden">
+      <div className="w-full max-w-[1440px] p-6 rounded-2xl glass-panel border border-white/20 grid grid-cols-1 lg:grid-cols-12 gap-6 max-h-[95vh] overflow-hidden relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-all p-1.5 hover:bg-white/10 rounded-full z-10"
+          title="Fechar"
+        >
+          <X className="w-5 h-5" />
+        </button>
 
         {/* Left Panel: Editor Configs */}
         <div className="lg:col-span-4 flex flex-col justify-between space-y-4 overflow-y-auto pr-2 max-h-[85vh]">
