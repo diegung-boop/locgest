@@ -27,14 +27,14 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
   const [retrievalFreight, setRetrievalFreight] = useState("1.000,00");
   const [objectValue, setObjectValue] = useState("40.000,00");
   const [forumCity, setForumCity] = useState("Eusébio (CE)");
-  
+
   const [locadorRep, setLocadorRep] = useState(
     "Eliane Veríssimo Gomes, brasileira, divorciada, empresária, RG nº 440.646 SSP-CE, C.P.F nº 201.420.303-25, residente e domiciliada na cidade de Fortaleza/ CE, na Av. Dos Expedicionários nº 5405 Bloco 10 Aptº 101 – Vila União – CEP: 60.410-411"
   );
   const [locadorAttorney, setLocadorAttorney] = useState(
     "Hélio Peixoto de Alencar Neto, brasileiro, divorciado, empresário, RG nº 90011007350 SSP-CE, CPF nº 456.487.273-72, residente e domiciliado na cidade de Fortaleza/ CE, na Rua Joaquim Nabuco nº 1300 Aptº 102 – Aldeota – CEP: 60.125-055"
   );
-  
+
   const [locatarioRep, setLocatarioRep] = useState(
     client?.contact_name
       ? `${client.contact_name}, representante legal da empresa locatária, portador do documento de identificação cadastrado no sistema.`
@@ -169,9 +169,23 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
         const email = organization.email || "financeiro@locgest.com";
         const footerText = `${addressLine} — FONE: ${phone} — ${email}`.toUpperCase();
 
+        // Calculate dynamic dimensions to preserve logo aspect ratio
+        let imgWidth = 30;
+        let imgHeight = 9;
+        if (logoImg && logoImg.complete && logoImg.naturalWidth > 0 && logoImg.naturalHeight > 0) {
+          const aspectRatio = logoImg.naturalHeight / logoImg.naturalWidth;
+          imgWidth = 35; // Maximum width in mm
+          imgHeight = imgWidth * aspectRatio;
+          // Scale down if height exceeds the maximum header allocation (11mm)
+          if (imgHeight > 11) {
+            imgHeight = 11;
+            imgWidth = imgHeight / aspectRatio;
+          }
+        }
+
         for (let i = 1; i <= totalPages; i++) {
           pdf.setPage(i);
-          
+
           // Draw header divider line
           pdf.setDrawColor(200, 200, 200);
           pdf.setLineWidth(0.3);
@@ -185,7 +199,9 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
 
           // Draw logo if available
           if (logoBase64) {
-            pdf.addImage(logoBase64, "PNG", 165, 8, 30, 9);
+            const logoX = 195 - imgWidth; // Align to the right margin of A4
+            const logoY = 19 - imgHeight; // Align vertically to 1mm above the header divider line
+            pdf.addImage(logoBase64, "PNG", logoX, logoY, imgWidth, imgHeight);
           }
 
           // Draw footer divider line
@@ -208,7 +224,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
       if (!shouldUpload) {
         await worker.save();
         toast.success("PDF baixado com sucesso!");
-        
+
         // Restore HTML header and footer
         if (htmlHeader) htmlHeader.style.display = "flex";
         if (htmlFooter) htmlFooter.style.display = "block";
@@ -242,7 +258,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
     } catch (err) {
       console.error("Error generating/uploading PDF:", err);
       toast.error("Erro ao gerar/salvar PDF.");
-      
+
       // Ensure restoration on error
       const htmlHeader = document.getElementById("contract-html-header");
       const htmlFooter = document.getElementById("contract-html-footer");
@@ -276,7 +292,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md text-xs">
       <div className="w-full max-w-[1440px] p-6 rounded-2xl glass-panel border border-white/20 grid grid-cols-1 lg:grid-cols-12 gap-6 max-h-[95vh] overflow-hidden">
-        
+
         {/* Left Panel: Editor Configs */}
         <div className="lg:col-span-4 flex flex-col justify-between space-y-4 overflow-y-auto pr-2 max-h-[85vh]">
           <div className="space-y-4 text-xs">
@@ -327,7 +343,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-muted-foreground mb-1 font-semibold">Val. Módulo (R$)</label>
+                <label className="block text-muted-foreground mb-1 font-semibold">Val. Equipamentos (R$)</label>
                 <input
                   type="text"
                   value={objectValue}
@@ -400,11 +416,10 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
             <button
               onClick={handleSendWhatsApp}
               disabled={!pdfUrl}
-              className={`w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${
-                pdfUrl
-                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"
-                  : "bg-slate-800 text-muted-foreground cursor-not-allowed"
-              }`}
+              className={`w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${pdfUrl
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"
+                : "bg-slate-800 text-muted-foreground cursor-not-allowed"
+                }`}
             >
               <Send className="w-4 h-4" /> Enviar por WhatsApp
             </button>
@@ -445,7 +460,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
               }}
               className="transition-transform duration-100 ease-out"
             >
-              
+
               {/* ON-SCREEN PREVIEW: Continuous Document (What the user sees in the modal & what html2pdf captures) */}
               <div
                 ref={sheetRef}
@@ -571,11 +586,11 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                         <span className="text-[9px] text-neutral-600">Descrição/Detalhamento: {item.equipment_name} para locação corporativa padrão.</span>
                       </div>
                     )) || (
-                      <div className="border border-neutral-300 p-2 rounded text-[10px]">
-                        <span className="font-bold">Equipamentos do Contrato</span><br />
-                        <span className="text-[9px] text-neutral-600">Conforme listados na proposta comercial vinculada.</span>
-                      </div>
-                    )}
+                        <div className="border border-neutral-300 p-2 rounded text-[10px]">
+                          <span className="font-bold">Equipamentos do Contrato</span><br />
+                          <span className="text-[9px] text-neutral-600">Conforme listados na proposta comercial vinculada.</span>
+                        </div>
+                      )}
                   </div>
                 </div>
 
