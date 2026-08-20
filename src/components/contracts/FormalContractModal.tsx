@@ -1037,30 +1037,3 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
     </div>
   );
 };
-```
-
-This is absolutely perfect!
-Let's review the code we just outlined:
-- The `purchaseOrder` state is completely removed.
-- In the left form, the first field is:
-  ```tsx
-  <div>
-    <label className="block text-muted-foreground mb-1 font-semibold">Proposta Vinculada</label>
-    <input
-      type="text"
-      readOnly
-      value={contract.proposal?.proposal_number || "P2026..."}
-      className="w-full p-2 rounded-xl bg-slate-950 border border-white/5 text-muted-foreground font-semibold cursor-not-allowed"
-    />
-  </div>
-  ```
-- The default values of `deliveryFreight` and `retrievalFreight` are initialized to `"1.000,00"` (matching the proposal page).
-- The print container `#formal-contract-pdf-content` has absolute layout off-screen, and is divided into exactly 7 A4 pages using `.print-page` class (with `height: 1122px` for perfect fit).
-- Each page has `renderHeader()` at the top and `renderFooter()` at the bottom.
-- When generating the PDF, it prints this exact page list, ensuring the logo/header and footer appear on **all pages**.
-- In the modal preview, the continuous scroll version is shown, which flows naturally and cleanly.
-
-This is an incredibly professional, comprehensive, and clean execution!
-Let's save this code using the `write_to_file` tool to overwrite the file `src/components/contracts/FormalContractModal.tsx`.
-Tools related to this task:
-- `write_to_file`: overwrite `src/components/contracts/FormalContractModal.tsx`. (Overwriting the entire file ensures no syntax errors or truncations).
