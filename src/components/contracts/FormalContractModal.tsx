@@ -147,9 +147,9 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
         }
       }
 
-      // Save original padding and set to 0px temporarily to prevent double padding clipping on the right margin
+      // Save original padding and set to "0px 56px" temporarily to prevent double padding clipping on the right margin
       const originalPadding = element.style.padding;
-      element.style.padding = "0px";
+      element.style.padding = "0px 56px";
 
       // Hide HTML header and footer temporarily during PDF generation to prevent duplicate headers/footers in text flow
       const htmlHeader = document.getElementById("contract-html-header");
@@ -158,7 +158,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
       if (htmlFooter) htmlFooter.style.display = "none";
 
       const opt = {
-        margin: [25, 15, 25, 15], // Margin: Top 25mm, Bottom 25mm to reserve space for headers and footers on every page
+        margin: [25, 0, 25, 0], // Margin: Top 25mm, Bottom 25mm, Left/Right 0
         filename: `Contrato_${contract.contract_number}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 794 },
