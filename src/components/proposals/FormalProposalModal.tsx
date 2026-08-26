@@ -410,6 +410,39 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                     renders correctly since it's just normal box positioning.
                   */}
 
+                  {/* Leased Products "Table" */}
+                  <div className="mb-4">
+                    <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Produtos para Locação</div>
+                    <div className="w-full text-[8px]">
+                      <div className="flex items-center bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
+                        <div className="w-[4%] shrink-0 p-1.5">#</div>
+                        <div className="w-[14%] shrink-0 p-1.5">TAG / Patrimônio</div>
+                        <div className="w-[42%] shrink-0 p-1.5">Descrição</div>
+                        <div className="w-[12%] shrink-0 p-1.5">Faturamento</div>
+                        <div className="w-[6%] shrink-0 p-1.5 text-center">Qtd</div>
+                        <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">Vl. Unit.</div>
+                        <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">Total</div>
+                      </div>
+                      {proposal.equipment_items?.map((item, idx) => (
+                        <div key={idx} className="flex items-center border-b border-gray-200">
+                          <div className="w-[4%] shrink-0 p-1.5">{idx + 1}</div>
+                          <div className="w-[14%] shrink-0 p-1.5 font-bold text-gray-700">{item.equipment_code}</div>
+                          <div className="w-[42%] shrink-0 p-1.5">
+                            <span className="font-bold text-gray-900 block">{item.equipment_name.toUpperCase()}</span>
+                          </div>
+                          <div className="w-[12%] shrink-0 p-1.5 text-[8px] font-bold text-gray-600 uppercase">MENSAL</div>
+                          <div className="w-[6%] shrink-0 p-1.5 text-center font-semibold">{item.qty}</div>
+                          <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">R$ {item.monthly_rate.toLocaleString("pt-BR")}</div>
+                          <div className="w-[11%] shrink-0 p-1.5 text-right font-bold whitespace-nowrap">R$ {item.total_amount.toLocaleString("pt-BR")}</div>
+                        </div>
+                      ))}
+                      <div className="flex items-center bg-gray-50 font-bold border-t border-gray-300">
+                        <div className="w-[89%] shrink-0 p-1.5 uppercase">TOTAL MENSAL DOS EQUIPAMENTOS</div>
+                        <div className="w-[11%] shrink-0 p-1.5 text-right text-emerald-800 font-black whitespace-nowrap">R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Complementary Costs "Table" */}
                   <div className="mb-4">
                     <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Valores Complementares</div>
@@ -440,39 +473,6 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                             (parseFloat(retrievalFreight.replace(".", "").replace(",", ".")) || 0)
                           ).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Leased Products "Table" */}
-                  <div className="mb-4">
-                    <div className="font-bold uppercase text-gray-700 text-[8px] mb-1.5 tracking-wider">Produtos para Locação</div>
-                    <div className="w-full text-[8px]">
-                      <div className="flex items-center bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
-                        <div className="w-[4%] shrink-0 p-1.5">#</div>
-                        <div className="w-[14%] shrink-0 p-1.5">TAG / Patrimônio</div>
-                        <div className="w-[42%] shrink-0 p-1.5">Descrição</div>
-                        <div className="w-[12%] shrink-0 p-1.5">Faturamento</div>
-                        <div className="w-[6%] shrink-0 p-1.5 text-center">Qtd</div>
-                        <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">Vl. Unit.</div>
-                        <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">Total</div>
-                      </div>
-                      {proposal.equipment_items?.map((item, idx) => (
-                        <div key={idx} className="flex items-center border-b border-gray-200">
-                          <div className="w-[4%] shrink-0 p-1.5">{idx + 1}</div>
-                          <div className="w-[14%] shrink-0 p-1.5 font-bold text-gray-700">{item.equipment_code}</div>
-                          <div className="w-[42%] shrink-0 p-1.5">
-                            <span className="font-bold text-gray-900 block">{item.equipment_name.toUpperCase()}</span>
-                          </div>
-                          <div className="w-[12%] shrink-0 p-1.5 text-[8px] font-bold text-gray-600 uppercase">MENSAL</div>
-                          <div className="w-[6%] shrink-0 p-1.5 text-center font-semibold">{item.qty}</div>
-                          <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">R$ {item.monthly_rate.toLocaleString("pt-BR")}</div>
-                          <div className="w-[11%] shrink-0 p-1.5 text-right font-bold whitespace-nowrap">R$ {item.total_amount.toLocaleString("pt-BR")}</div>
-                        </div>
-                      ))}
-                      <div className="flex items-center bg-gray-50 font-bold border-t border-gray-300">
-                        <div className="w-[89%] shrink-0 p-1.5 uppercase">TOTAL MENSAL DOS EQUIPAMENTOS</div>
-                        <div className="w-[11%] shrink-0 p-1.5 text-right text-emerald-800 font-black whitespace-nowrap">R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
                       </div>
                     </div>
                   </div>
