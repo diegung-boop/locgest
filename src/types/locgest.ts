@@ -29,6 +29,16 @@ export interface Organization {
   // availability rule (status + contract/maintenance date check) allows.
   // Defaults to true (rule enforced) — see CreateProposalModal.isEquipmentAvailable.
   require_equipment_availability: boolean;
+  // Custom Letterhead (Papel Timbrado Multi-Tenant)
+  letterhead_enabled?: boolean;
+  letterhead_header_url?: string | null;
+  letterhead_footer_url?: string | null;
+  letterhead_watermark_url?: string | null;
+  letterhead_watermark_opacity?: number;
+  letterhead_header_text?: string | null;
+  letterhead_footer_text?: string | null;
+  letterhead_logo_height?: number; // Altura da logo em pixels (ex: 40px a 140px)
+  letterhead_header_height?: number; // Altura do banner de cabeçalho em pixels
   created_at: string;
   updated_at: string;
 }
@@ -70,6 +80,20 @@ export interface EquipmentPricing {
   monthly_rate: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface PricingTierRule {
+  id: string;
+  organization_id: string;
+  catalog_id: string;
+  min_months: number;
+  max_months: number | null; // null means min_months and above (e.g. 3+ months)
+  monthly_rate: number;
+  freight_delivery: number;
+  freight_retrieval: number;
+  payment_terms_template?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface EquipmentAsset {

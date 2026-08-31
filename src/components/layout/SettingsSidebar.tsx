@@ -14,6 +14,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClos
 
   // Settings sub-navigation items
   const settingsNavItems = [
+    { label: "Papel Timbrado & Empresa", path: "/organization", icon: Building2, description: "Cabeçalho, rodapé e marca-d'água" },
     { label: "Gestão de Usuários", path: "/users", icon: Users, description: "Perfis, papéis e permissões" },
     { label: "Tabela de Preços & Tarifas", path: "/pricing", icon: Coins, description: "Valores diários/mensais e tamanhos" },
   ];

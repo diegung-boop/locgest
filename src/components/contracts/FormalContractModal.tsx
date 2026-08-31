@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Contract, Client, Organization } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
 import { StorageService } from "@/services/storageService";
-import { X, Download, CloudLightning, FileText, Send, Check } from "lucide-react";
+import { X, Download, CloudLightning, FileText, Send, Check, Mail } from "lucide-react";
 import { toast } from "sonner";
 // @ts-ignore
 import html2pdf from "html2pdf.js";
@@ -287,6 +287,25 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
     window.open(whatsappUrl, "_blank");
   };
 
+  const handleSendEmail = () => {
+    if (!pdfUrl) {
+      toast.warning("Gere e salve o PDF do contrato primeiro.");
+      return;
+    }
+    const emailTo = client?.email;
+    if (!emailTo) {
+      toast.error("O cliente não possui e-mail cadastrado.");
+      return;
+    }
+
+    const subject = `Contrato de Locação nº ${contract.contract_number} - ${organization.name}`;
+    const body = `Olá ${client?.contact_person || client?.company_name || ""},\n\nSegue nosso Contrato de Locação de Bens Móveis nº ${contract.contract_number} formalizado:\n\n📄 Visualizar Contrato: ${pdfUrl}\n\nFicamos no aguardo da assinatura.\n\nAtenciosamente,\n${organization.name}`;
+
+    const mailtoUrl = `mailto:${emailTo}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
+    toast.success(`Abrindo cliente de e-mail para ${emailTo}...`);
+  };
+
   const formatAddress = (org: any) => {
     const parts = [org.address_st, org.address_number, org.address_neighborhood].filter(Boolean);
     const cityState = [org.address_city, org.address_estate].filter(Boolean).join("/");
@@ -428,16 +447,30 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
               </button>
             </div>
 
-            <button
-              onClick={handleSendWhatsApp}
-              disabled={!pdfUrl}
-              className={`w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${pdfUrl
-                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"
-                : "bg-slate-800 text-muted-foreground cursor-not-allowed"
-                }`}
-            >
-              <Send className="w-4 h-4" /> Enviar por WhatsApp
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleSendWhatsApp}
+                disabled={!pdfUrl}
+                className={`py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-xs ${pdfUrl
+                  ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"
+                  : "bg-slate-800 text-muted-foreground cursor-not-allowed"
+                  }`}
+              >
+                <Send className="w-4 h-4" /> WhatsApp
+              </button>
+
+              <button
+                onClick={handleSendEmail}
+                disabled={!pdfUrl}
+                title={client?.email ? `Enviar para ${client.email}` : "Sem e-mail cadastrado"}
+                className={`py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-xs ${pdfUrl
+                  ? "bg-sky-600 hover:bg-sky-500 text-white shadow-lg shadow-sky-600/20"
+                  : "bg-slate-800 text-muted-foreground cursor-not-allowed"
+                  }`}
+              >
+                <Mail className="w-4 h-4" /> Enviar E-mail
+              </button>
+            </div>
 
             {pdfUrl && (
               <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-2 text-[10px]">
@@ -552,13 +585,54 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                   }
                 `}</style>
 
-                {/* Header (Hidden dynamically during print) */}
-                <div id="contract-html-header" className="flex justify-between items-center border-b-2 border-black pb-2.5 mb-6">
-                  <div className="font-black text-sm tracking-tight text-neutral-800 uppercase">
-                    {organization.name}
+                {/* Background Watermark Layer */}
+                {organization.letterhead_enabled !== false && organization.letterhead_watermark_url && (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none p-12 z-0"
+                    style={{ opacity: organization.letterhead_watermark_opacity ?? 0.10 }}
+                  >
+                    <img
+                      src={organization.letterhead_watermark_url}
+                      crossOrigin="anonymous"
+                      alt="Marca d'água"
+                      className="max-w-[70%] max-h-[60%] object-contain"
+                    />
                   </div>
-                  {organization.logo_url && (
-                    <img id="locadora-logo-img" src={organization.logo_url} crossOrigin="anonymous" alt="Logo" className="max-h-[52px] object-contain" />
+                )}
+
+                {/* Header (Hidden dynamically during print) */}
+                <div id="contract-html-header" className="relative z-10 flex justify-between items-center border-b-2 border-black pb-2.5 mb-6">
+                  {organization.letterhead_enabled !== false && organization.letterhead_header_url ? (
+                    <img
+                      src={organization.letterhead_header_url}
+                      crossOrigin="anonymous"
+                      alt="Cabeçalho"
+                      className="w-full object-contain"
+                      style={{ maxHeight: `${organization.letterhead_header_height ?? 80}px` }}
+                    />
+                  ) : (
+                    <>
+                      <div>
+                        <div className="font-black text-sm tracking-tight text-neutral-800 uppercase">
+                          {organization.name}
+                        </div>
+                        {organization.letterhead_header_text && (
+                          <div className="text-[9px] text-neutral-500 italic mt-0.5">
+                            {organization.letterhead_header_text}
+                          </div>
+                        )}
+                      </div>
+                      {organization.logo_url && (
+                        <img
+                          id="locadora-logo-img"
+                          src={organization.logo_url}
+                          crossOrigin="anonymous"
+                          alt="Logo"
+                          className="max-w-[240px] object-contain"
+                          style={{ maxHeight: `${organization.letterhead_logo_height ?? 75}px` }}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -828,8 +902,12 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                 </div>
 
                 {/* Footer (Hidden dynamically during print) */}
-                <div id="contract-html-footer" className="border-t border-neutral-300 pt-4 mt-8 text-center text-[8px] text-neutral-500 font-bold uppercase tracking-wider">
-                  {formatAddress(organization)} — Fone: {organization.phone || "(85) 3034 3519"} — {organization.email}
+                <div id="contract-html-footer" className="relative z-10 border-t border-neutral-300 pt-4 mt-8 text-center text-[8px] text-neutral-500 font-bold uppercase tracking-wider">
+                  {organization.letterhead_enabled !== false && organization.letterhead_footer_url ? (
+                    <img src={organization.letterhead_footer_url} crossOrigin="anonymous" alt="Rodapé" className="w-full max-h-14 object-contain" />
+                  ) : (
+                    organization.letterhead_footer_text || `${formatAddress(organization)} — Fone: ${organization.phone || "(85) 3034 3519"} — ${organization.email}`
+                  )}
                 </div>
               </div>
 

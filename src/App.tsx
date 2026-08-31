@@ -13,6 +13,7 @@ import { FinancialPage } from "@/pages/FinancialPage";
 import { LogisticsPage } from "@/pages/LogisticsPage";
 import { UsersPage } from "@/pages/UsersPage";
 import { PricingSettingsPage } from "@/pages/PricingSettingsPage";
+import { OrganizationSettingsPage } from "@/pages/OrganizationSettingsPage";
 import { SuperAdminPage } from "@/pages/SuperAdmin";
 import { LoginPage } from "@/pages/LoginPage";
 import { AcceptInvitePage } from "@/pages/AcceptInvitePage";
@@ -37,6 +38,7 @@ export function App() {
               <Route path="logistics" element={<LogisticsPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="pricing" element={<PricingSettingsPage />} />
+              <Route path="organization" element={<OrganizationSettingsPage />} />
               <Route path="superadmin" element={<SuperAdminPage />} />
             </Route>
           </Routes>

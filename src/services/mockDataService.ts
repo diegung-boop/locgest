@@ -8,7 +8,8 @@ import {
   Proposal, 
   Contract, 
   FinancialRecord, 
-  ServiceOrder 
+  ServiceOrder,
+  PricingTierRule,
 } from "@/types/locgest";
 
 const STORAGE_KEYS = {
@@ -22,6 +23,7 @@ const STORAGE_KEYS = {
   CONTRACTS: "locgest_contracts",
   FINANCIAL: "locgest_financial",
   SERVICE_ORDERS: "locgest_service_orders",
+  PRICING_TIERS: "locgest_pricing_tiers",
 };
 
 // Clean Base System with SuperAdmin Tenant
@@ -40,6 +42,10 @@ const INITIAL_ORGANIZATIONS: Organization[] = [
     email: "superadmin@locgest.com.br",
     address_st: "São Paulo, SP",
     require_equipment_availability: true,
+    letterhead_enabled: true,
+    letterhead_watermark_opacity: 0.10,
+    letterhead_header_text: "Locadora Matriz - Gestão & Locações Especializadas",
+    letterhead_footer_text: "Av. Paulista, 1000 — São Paulo/SP — Fone: (11) 3000-0000 — superadmin@locgest.com.br",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -266,4 +272,60 @@ export class MockDataService {
     else list.push(cleanAsset);
     setItem(STORAGE_KEYS.ASSETS, list);
   }
+
+  // PRICING TIER RULES
+  static getPricingTierRules(orgId: string, catalogId?: string): PricingTierRule[] {
+    const all = getItem<PricingTierRule[]>(STORAGE_KEYS.PRICING_TIERS, INITIAL_PRICING_TIERS);
+    return all.filter((r) => r.organization_id === orgId && (!catalogId || r.catalog_id === catalogId));
+  }
+
+  static savePricingTierRule(rule: PricingTierRule): void {
+    const list = getItem<PricingTierRule[]>(STORAGE_KEYS.PRICING_TIERS, INITIAL_PRICING_TIERS);
+    const idx = list.findIndex((r) => r.id === rule.id);
+    if (idx >= 0) list[idx] = rule;
+    else list.push(rule);
+    setItem(STORAGE_KEYS.PRICING_TIERS, list);
+  }
+
+  static deletePricingTierRule(id: string): void {
+    const list = getItem<PricingTierRule[]>(STORAGE_KEYS.PRICING_TIERS, INITIAL_PRICING_TIERS);
+    const filtered = list.filter((r) => r.id !== id);
+    setItem(STORAGE_KEYS.PRICING_TIERS, filtered);
+  }
 }
+
+const INITIAL_PRICING_TIERS: PricingTierRule[] = [
+  {
+    id: "tier-marloc-deposito-1m",
+    organization_id: "a1b2c3d4-e5f6-7890-abcd-1234567890ab", // Marloc ID
+    catalog_id: "cat-001", // Container Almoxarifado / Depósito
+    min_months: 1,
+    max_months: 1,
+    monthly_rate: 900,
+    freight_delivery: 800,
+    freight_retrieval: 800,
+    payment_terms_template: "À vista na assinatura do Contrato",
+  },
+  {
+    id: "tier-marloc-deposito-2m",
+    organization_id: "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+    catalog_id: "cat-001",
+    min_months: 2,
+    max_months: 2,
+    monthly_rate: 800,
+    freight_delivery: 800,
+    freight_retrieval: 800,
+    payment_terms_template: "1ª Parcela: Locação + Frete Entrega = 10 (dez) dias após assinatura do contrato;\n2ª Parcela: Locação + Frete Retirada = 30 (trinta) dias após assinatura do contrato.",
+  },
+  {
+    id: "tier-marloc-deposito-3m",
+    organization_id: "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+    catalog_id: "cat-001",
+    min_months: 3,
+    max_months: null,
+    monthly_rate: 700,
+    freight_delivery: 800,
+    freight_retrieval: 800,
+    payment_terms_template: "1ª Parcela: Locação + Frete Entrega = 10 (dez) dias após assinatura do contrato;\n2ª Parcela: Locação + Frete Retirada = 30 (trinta) dias após assinatura do contrato;\n3ª Parcela em diante: Locação = a cada 30 (trinta) dias.",
+  },
+];

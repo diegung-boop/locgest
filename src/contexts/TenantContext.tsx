@@ -47,6 +47,17 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setLoading(true);
     const orgs = await SupabaseDataService.getOrganizations();
     setAllOrganizations(orgs);
+    setOverrideOrg((prev) => {
+      if (!prev) return null;
+      const match = orgs.find((o) => o.id === prev.id);
+      if (match) {
+        try {
+          sessionStorage.setItem(OVERRIDE_STORAGE_KEY, JSON.stringify(match));
+        } catch (e) {}
+        return match;
+      }
+      return prev;
+    });
     setLoading(false);
   };
 

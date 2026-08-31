@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useTenant } from "@/contexts/TenantContext";
-import { Client, Equipment, Proposal, ProposalItem, Contract, Maintenance } from "@/types/locgest";
+import { Client, Equipment, Proposal, ProposalItem, Contract, Maintenance, PricingTierRule } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
-import { FileText, X, Building2, Calendar, Plus, Trash2, Layers, AlertTriangle, Truck, Loader2 } from "lucide-react";
+import { FileText, X, Building2, Calendar, Plus, Trash2, Layers, AlertTriangle, Truck, Loader2, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 interface CreateProposalModalProps {
@@ -40,6 +40,8 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
     start_date: todayStr,
     requested_delivery_date: todayStr,
   });
+
+  const [tierRules, setTierRules] = useState<PricingTierRule[]>([]);
 
   const [items, setItems] = useState<ProposalFormItem[]>([
     { equipment_id: "", qty: 1, duration_months: 1 },
@@ -115,12 +117,14 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
     const conList = await SupabaseDataService.getContracts(organization.id);
     const mainList = await SupabaseDataService.getMaintenances(organization.id);
     const propList = await SupabaseDataService.getProposals(organization.id);
+    const rules = await SupabaseDataService.getPricingTierRules(organization.id);
 
     setClients(cliList);
     setEquipmentList(eqList);
     setContracts(conList);
     setMaintenances(mainList);
     setProposals(propList);
+    setTierRules(rules);
 
     const initialClientId = preselectedClientId || cliList[0]?.id || "";
     const firstAvailableEq = eqList.find((eq) => eq.status === "Available");
@@ -142,6 +146,31 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
   useEffect(() => {
     loadData();
   }, [organization.id, preselectedClientId]);
+
+  // Helper to find matching pricing tier rule for a given equipment and duration
+  const getItemTierRule = (equipmentId: string, durationMonths: number): PricingTierRule | null => {
+    const eq = equipmentList.find((e) => e.id === equipmentId);
+    const catalogId = eq?.catalog_item?.id || eq?.catalog_id;
+    if (!catalogId) return null;
+
+    const matchingRules = tierRules.filter((r) => r.catalog_id === catalogId);
+    const months = Math.max(1, Number(durationMonths) || 1);
+
+    const matched = matchingRules.find((r) => {
+      const minOk = months >= r.min_months;
+      const maxOk = r.max_months === null || months <= r.max_months;
+      return minOk && maxOk;
+    });
+
+    return matched || null;
+  };
+
+  const getItemMonthlyRate = (item: ProposalFormItem): number => {
+    const eq = equipmentList.find((e) => e.id === item.equipment_id);
+    if (!eq) return 0;
+    const rule = getItemTierRule(item.equipment_id, item.duration_months);
+    return rule ? rule.monthly_rate : eq.monthly_rate;
+  };
 
   // Helper to calculate end date based on start date and N months (start + N months - 1 day)
   function calculateMonthlyEndDate(startDateStr: string, monthsCount: number): string {
@@ -194,10 +223,9 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
 
   // Calculate subtotal for each item (monthly rate * qty * item.duration_months)
   const calculateItemSubtotal = (item: ProposalFormItem) => {
-    const eq = equipmentList.find((e) => e.id === item.equipment_id);
-    if (!eq) return 0;
+    const monthlyRate = getItemMonthlyRate(item);
     const months = Math.max(1, Number(item.duration_months) || 1);
-    return eq.monthly_rate * item.qty * months;
+    return monthlyRate * item.qty * months;
   };
 
   const grandTotal = items.reduce((sum, item) => sum + calculateItemSubtotal(item), 0);
@@ -222,7 +250,8 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
       const proposalItems: ProposalItem[] = items.map((item) => {
         const eq = equipmentList.find((e) => e.id === item.equipment_id);
         const months = Math.max(1, Number(item.duration_months) || 1);
-        const subtotal = (eq?.monthly_rate || 0) * item.qty * months;
+        const monthlyRate = getItemMonthlyRate(item);
+        const subtotal = monthlyRate * item.qty * months;
         const earlyReturnDate = months < maxDurationMonths 
           ? calculateMonthlyEndDate(formData.start_date, months) 
           : undefined;
@@ -233,7 +262,7 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
           equipment_code: eq?.code || "EQ-ITEM",
           equipment_name: eq?.name || "Equipamento Cotado",
           daily_rate: eq?.daily_rate || 0,
-          monthly_rate: eq?.monthly_rate || 0,
+          monthly_rate: monthlyRate,
           qty: Number(item.qty),
           billing_type: "monthly",
           duration_months: months,
@@ -429,18 +458,23 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
                           const selectedEq = equipmentList.find((e) => e.id === item.equipment_id);
                           if (!selectedEq) return null;
                           const size = selectedEq.catalog_item?.size_dimension || "Padrão";
-                          const monthly = selectedEq.monthly_rate;
-                          const daily = selectedEq.daily_rate;
+                          const rule = getItemTierRule(item.equipment_id, item.duration_months);
+                          const activeRate = rule ? rule.monthly_rate : selectedEq.monthly_rate;
 
                           return (
-                            <div className="flex items-center gap-2 mt-1.5 text-[11px]">
+                            <div className="flex items-center gap-2 mt-1.5 text-[11px] flex-wrap">
                               <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold">
                                 {size}
                               </span>
-                              <span className="text-emerald-400 font-bold">
-                                Tarifa: R$ {monthly.toLocaleString("pt-BR")}/mês
-                              </span>
-                              {daily > 0 && <span className="text-muted-foreground">(R$ {daily.toLocaleString("pt-BR")}/dia)</span>}
+                              {rule ? (
+                                <span className="px-2 py-0.5 rounded bg-tenant/20 border border-tenant/40 text-tenant font-extrabold flex items-center gap-1">
+                                  <Zap className="w-3 h-3 text-amber-400" /> Faixa de Prazo: R$ {activeRate.toLocaleString("pt-BR")}/mês
+                                </span>
+                              ) : (
+                                <span className="text-emerald-400 font-bold">
+                                  Tarifa Base: R$ {activeRate.toLocaleString("pt-BR")}/mês
+                                </span>
+                              )}
                             </div>
                           );
                         })()}

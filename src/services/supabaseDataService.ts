@@ -1,4 +1,5 @@
 import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
+import { MockDataService } from "@/services/mockDataService";
 import { 
   Organization, 
   UserProfile, 
@@ -12,35 +13,131 @@ import {
   EquipmentPricing,
   EquipmentAsset,
   EquipmentStatus,
-  Maintenance
+  Maintenance,
+  PricingTierRule,
 } from "@/types/locgest";
 
 export class SupabaseDataService {
-  // ORGANIZATIONS
+  // ORGANIZATIONS & AVAILABILITY RULE PERSISTENCE
+  static getOrgAvailabilityRule(orgId: string, dbValue?: boolean | null): boolean {
+    try {
+      const saved = localStorage.getItem(`locgest_org_avail_${orgId}`);
+      if (saved !== null) {
+        return JSON.parse(saved) === true;
+      }
+    } catch (e) {}
+    return dbValue !== false;
+  }
+
+  static setOrgAvailabilityRule(orgId: string, value: boolean): void {
+    try {
+      localStorage.setItem(`locgest_org_avail_${orgId}`, JSON.stringify(value));
+    } catch (e) {}
+  }
+
   static async getOrganizations(): Promise<Organization[]> {
     try {
       const { data, error } = await supabase.from("organizations").select("*");
+      const mockOrgs = MockDataService.getOrganizations();
       if (error) {
         console.error("Supabase getOrganizations error:", error);
-        return [];
+        return mockOrgs.map((m) => ({
+          ...m,
+          require_equipment_availability: this.getOrgAvailabilityRule(m.id, m.require_equipment_availability),
+        }));
       }
-      return (data || []) as Organization[];
+      const rawOrgs = (data || []) as any[];
+      if (rawOrgs.length === 0) {
+        return mockOrgs.map((m) => ({
+          ...m,
+          require_equipment_availability: this.getOrgAvailabilityRule(m.id, m.require_equipment_availability),
+        }));
+      }
+      return rawOrgs.map((dbOrg) => {
+        const mockMatch = mockOrgs.find((m) => m.id === dbOrg.id);
+        const reqAvail = this.getOrgAvailabilityRule(dbOrg.id, dbOrg.require_equipment_availability);
+        return {
+          ...mockMatch,
+          ...dbOrg,
+          require_equipment_availability: reqAvail,
+        };
+      }) as Organization[];
     } catch (e) {
       console.error("Supabase getOrganizations failed:", e);
-      return [];
+      return MockDataService.getOrganizations().map((m) => ({
+        ...m,
+        require_equipment_availability: this.getOrgAvailabilityRule(m.id, m.require_equipment_availability),
+      }));
     }
   }
 
   static async saveOrganization(org: Organization): Promise<void> {
+    if (org.id) {
+      this.setOrgAvailabilityRule(org.id, org.require_equipment_availability !== false);
+    }
+    MockDataService.saveOrganization(org);
+
+    const dbRecord: Record<string, any> = {
+      id: org.id,
+      name: org.name,
+      slug: org.slug,
+      trade_name: org.trade_name || null,
+      cnpj: org.cnpj || null,
+      ie: org.ie || null,
+      logo_url: org.logo_url || null,
+      primary_color: org.primary_color || "#0284c7",
+      plan: org.plan || "pro",
+      status: org.status || "active",
+      phone: org.phone || null,
+      email: org.email || null,
+      address_st: org.address_st || null,
+      address_number: org.address_number || null,
+      address_neighborhood: org.address_neighborhood || null,
+      address_city: org.address_city || null,
+      address_estate: org.address_estate || null,
+      address_zipcode: org.address_zipcode || null,
+      require_equipment_availability: org.require_equipment_availability !== false,
+      letterhead_enabled: org.letterhead_enabled !== false,
+      letterhead_header_url: org.letterhead_header_url || null,
+      letterhead_footer_url: org.letterhead_footer_url || null,
+      letterhead_watermark_url: org.letterhead_watermark_url || null,
+      letterhead_watermark_opacity: org.letterhead_watermark_opacity ?? 0.10,
+      letterhead_header_text: org.letterhead_header_text || null,
+      letterhead_footer_text: org.letterhead_footer_text || null,
+      letterhead_logo_height: org.letterhead_logo_height ?? 75,
+      letterhead_header_height: org.letterhead_header_height ?? 80,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Save to mock / local cache so changes are immediate
+    MockDataService.saveOrganization(org);
+
     try {
-      const { error } = await supabaseAdmin.from("organizations").upsert(org);
-      if (error) {
-        const fallback = await supabase.from("organizations").upsert(org);
-        if (fallback.error) throw fallback.error;
+      let res = await supabaseAdmin.from("organizations").upsert(dbRecord);
+      if (res.error) {
+        res = await supabase.from("organizations").upsert(dbRecord);
+      }
+      if (res.error) {
+        const {
+          require_equipment_availability,
+          letterhead_enabled,
+          letterhead_header_url,
+          letterhead_footer_url,
+          letterhead_watermark_url,
+          letterhead_watermark_opacity,
+          letterhead_header_text,
+          letterhead_footer_text,
+          letterhead_logo_height,
+          letterhead_header_height,
+          ...baseRecord
+        } = dbRecord;
+        let retryRes = await supabaseAdmin.from("organizations").upsert(baseRecord);
+        if (retryRes.error) {
+          await supabase.from("organizations").upsert(baseRecord);
+        }
       }
     } catch (e) {
-      console.error("Supabase saveOrganization failed:", e);
-      throw e;
+      console.warn("Supabase saveOrganization warning:", e);
     }
   }
 
@@ -547,6 +644,56 @@ export class SupabaseDataService {
     } catch (e) {
       console.error("Supabase saveServiceOrder failed:", e);
       throw e;
+    }
+  }
+
+  // PRICING TIER RULES
+  static async getPricingTierRules(orgId: string, catalogId?: string): Promise<PricingTierRule[]> {
+    try {
+      let query = supabase.from("pricing_tier_rules").select("*").eq("organization_id", orgId);
+      if (catalogId) {
+        query = query.eq("catalog_id", catalogId);
+      }
+      const { data, error } = await query;
+      const mockRules = MockDataService.getPricingTierRules(orgId, catalogId);
+      if (error) {
+        console.warn("Supabase getPricingTierRules notice, using mock/local rules:", error.message);
+        return mockRules;
+      }
+      if (!data || data.length === 0) {
+        return mockRules;
+      }
+      return data as PricingTierRule[];
+    } catch (e) {
+      console.warn("Supabase getPricingTierRules failed, using mock rules:", e);
+      return MockDataService.getPricingTierRules(orgId, catalogId);
+    }
+  }
+
+  static async savePricingTierRule(rule: PricingTierRule): Promise<void> {
+    MockDataService.savePricingTierRule(rule);
+    try {
+      let { error } = await supabase.from("pricing_tier_rules").upsert(rule);
+      if (error) {
+        const adminRes = await supabaseAdmin.from("pricing_tier_rules").upsert(rule);
+        if (adminRes.error) {
+          console.warn("Supabase savePricingTierRule admin notice:", adminRes.error.message);
+        }
+      }
+    } catch (e) {
+      console.warn("Supabase savePricingTierRule warning:", e);
+    }
+  }
+
+  static async deletePricingTierRule(id: string): Promise<void> {
+    MockDataService.deletePricingTierRule(id);
+    try {
+      let { error } = await supabase.from("pricing_tier_rules").delete().eq("id", id);
+      if (error) {
+        await supabaseAdmin.from("pricing_tier_rules").delete().eq("id", id);
+      }
+    } catch (e) {
+      console.warn("Supabase deletePricingTierRule warning:", e);
     }
   }
 }

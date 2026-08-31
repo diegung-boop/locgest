@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useTenant } from "@/contexts/TenantContext";
-import { EquipmentCatalog, EquipmentPricing } from "@/types/locgest";
+import { EquipmentCatalog, EquipmentPricing, PricingTierRule } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
-import { Coins, Search, Layers, Save, Edit3, Loader2, Tag, ShieldCheck } from "lucide-react";
+import { PricingTierModal } from "@/components/pricing/PricingTierModal";
+import { Coins, Search, Layers, Save, Edit3, Loader2, Tag, ShieldCheck, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrencyBRL, maskCurrencyInput, parseCurrencyToNumber } from "@/utils/masks";
 
@@ -23,15 +24,20 @@ export const PricingSettingsPage: React.FC = () => {
     size_dimension: string;
   }>({ daily_rate_str: "", monthly_rate_str: "", size_dimension: "" });
 
+  const [allTierRules, setAllTierRules] = useState<PricingTierRule[]>([]);
+  const [selectedCatalogItemForTiers, setSelectedCatalogItemForTiers] = useState<EquipmentCatalog | null>(null);
+
   const categories = ["ALL", "Containers", "Escavação", "Geradores", "Elevação", "Compactação", "Ferramentas"];
 
   const loadData = async () => {
-    const [catList, prcList] = await Promise.all([
+    const [catList, prcList, tierRules] = await Promise.all([
       SupabaseDataService.getEquipmentCatalog(organization.id),
       SupabaseDataService.getEquipmentPricing(organization.id),
+      SupabaseDataService.getPricingTierRules(organization.id),
     ]);
     setCatalogList(catList);
     setPricingList(prcList);
+    setAllTierRules(tierRules);
   };
 
   useEffect(() => {
@@ -354,12 +360,31 @@ export const PricingSettingsPage: React.FC = () => {
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => handleStartEdit(item)}
-                            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-tenant/20 text-muted-foreground hover:text-tenant border border-white/10 hover:border-tenant/40 text-xs font-bold transition-all flex items-center gap-1.5 ml-auto"
-                          >
-                            <Edit3 className="w-3.5 h-3.5 text-amber-400" /> Editar Preços
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            {(() => {
+                              const ruleCount = allTierRules.filter((r) => r.catalog_id === item.id).length;
+                              return (
+                                <button
+                                  onClick={() => setSelectedCatalogItemForTiers(item)}
+                                  className="px-3 py-1.5 rounded-xl bg-tenant/10 hover:bg-tenant/20 text-tenant border border-tenant/30 font-bold text-xs transition-all flex items-center gap-1.5"
+                                >
+                                  <Calendar className="w-3.5 h-3.5 text-tenant" />
+                                  <span>Faixas por Prazo</span>
+                                  {ruleCount > 0 && (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-tenant text-white font-black text-[10px] ml-0.5">
+                                      {ruleCount}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })()}
+                            <button
+                              onClick={() => handleStartEdit(item)}
+                              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white border border-white/10 text-xs font-bold transition-all flex items-center gap-1.5"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-amber-400" /> Preço Base
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -371,6 +396,15 @@ export const PricingSettingsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Pricing Tier Modal */}
+      {selectedCatalogItemForTiers && (
+        <PricingTierModal
+          catalogItem={selectedCatalogItemForTiers}
+          organization={organization}
+          onClose={() => setSelectedCatalogItemForTiers(null)}
+          onSaveSuccess={loadData}
+        />
+      )}
     </div>
   );
 };

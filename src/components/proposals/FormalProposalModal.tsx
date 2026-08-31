@@ -4,6 +4,7 @@ import { SupabaseDataService } from "@/services/supabaseDataService";
 import { StorageService } from "@/services/storageService";
 import { X, Download, CloudLightning, FileText, Send, Check } from "lucide-react";
 import { toast } from "sonner";
+import { formatCurrencyBRL } from "@/utils/masks";
 // @ts-ignore
 import html2pdf from "html2pdf.js";
 
@@ -104,6 +105,40 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
     }
     return 12;
   };
+
+  useEffect(() => {
+    const applyTierDefaults = async () => {
+      const durationMonths = getLeaseDurationMonths();
+      const rules = await SupabaseDataService.getPricingTierRules(organization.id);
+      if (rules.length === 0) return;
+
+      const firstItem = proposal.equipment_items?.[0];
+      if (!firstItem) return;
+
+      const catalogList = await SupabaseDataService.getEquipmentCatalog(organization.id);
+      const matchedCat = catalogList.find((c) => c.name.toLowerCase() === firstItem.equipment_name.toLowerCase());
+      const catalogId = matchedCat?.id || "cat-001";
+
+      const matchingRules = rules.filter((r) => r.catalog_id === catalogId);
+      const matchedRule = matchingRules.find(
+        (r) => durationMonths >= r.min_months && (r.max_months === null || durationMonths <= r.max_months)
+      );
+
+      if (matchedRule) {
+        if (matchedRule.freight_delivery > 0) {
+          setDeliveryFreight(formatCurrencyBRL(matchedRule.freight_delivery));
+        }
+        if (matchedRule.freight_retrieval > 0) {
+          setRetrievalFreight(formatCurrencyBRL(matchedRule.freight_retrieval));
+        }
+        if (matchedRule.payment_terms_template) {
+          setPaymentFlow(matchedRule.payment_terms_template);
+        }
+      }
+    };
+
+    applyTierDefaults();
+  }, [proposal.id, organization.id]);
 
   const handleExportPDF = async (shouldUpload: boolean) => {
     try {
@@ -319,20 +354,50 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                   className="w-[210mm] bg-white text-black p-[10mm] text-[9px] leading-relaxed shadow-2xl relative font-sans"
                   style={{ color: "#111" }}
                 >
+                  {/* Background Watermark Layer */}
+                  {organization.letterhead_enabled !== false && organization.letterhead_watermark_url && (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none p-12 z-0"
+                      style={{ opacity: organization.letterhead_watermark_opacity ?? 0.10 }}
+                    >
+                      <img
+                        src={organization.letterhead_watermark_url}
+                        crossOrigin="anonymous"
+                        alt="Marca d'água"
+                        className="max-w-[70%] max-h-[60%] object-contain"
+                      />
+                    </div>
+                  )}
 
                   {/* Header Info */}
-                  <div className="flex justify-between items-center border-b-2 border-black pb-2.5 mb-4">
-                    <div>
-                      {organization.logo_url ? (
-                        <img src={organization.logo_url} alt="Logo" className="max-h-[52px] object-contain" />
-                      ) : (
-                        <h1 className="text-base font-black tracking-tight text-tenant uppercase">{organization.name}</h1>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs font-black text-black">PROPOSTA DE LOCAÇÃO Nº {proposal.proposal_number.replace("PROP-2026-", "")}</div>
-                      <div className="text-[9px] font-bold text-gray-600 mt-0.5">PRAZO DE {getLeaseDurationMonths()} MES(ES)</div>
-                    </div>
+                  <div className="relative z-10 flex justify-between items-center border-b-2 border-black pb-2.5 mb-4">
+                    {organization.letterhead_enabled !== false && organization.letterhead_header_url ? (
+                      <img
+                        src={organization.letterhead_header_url}
+                        crossOrigin="anonymous"
+                        alt="Cabeçalho"
+                        className="w-full object-contain"
+                        style={{ maxHeight: `${organization.letterhead_header_height ?? 80}px` }}
+                      />
+                    ) : (
+                      <>
+                        <div>
+                          {organization.logo_url ? (
+                            <img
+                              src={organization.logo_url}
+                              alt="Logo"
+                              className="max-w-[240px] object-contain"
+                              style={{ maxHeight: `${organization.letterhead_logo_height ?? 75}px` }}
+                            />
+                          ) : (
+                            <h1 className="text-base font-black tracking-tight text-tenant uppercase">{organization.name}</h1>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs font-black text-black">PROPOSTA DE LOCAÇÃO Nº {proposal.proposal_number.replace("PROP-2026-", "")}</div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Prestadora e Tomador details columns */}
@@ -395,10 +460,11 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                   </div>
 
                   {/* Lease Metadata Row */}
-                  <div className="flex items-center gap-2 bg-gray-100 p-2 rounded mb-4 font-semibold text-[9px]">
-                    <div className="flex-1"><span className="text-gray-500">Período:</span> {formatDateBRL(proposal.start_date)} à {formatDateBRL(proposal.end_date)}</div>
-                    <div className="flex-1"><span className="text-gray-500">Condição:</span> LOCAÇÃO</div>
-                    <div className="flex-1 text-right text-emerald-700 font-extrabold text-[10px]">Total Proposta: R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
+                  <div className="flex items-center gap-4 bg-gray-100 p-2 rounded mb-4 font-semibold text-[9px]">
+                    <div><span className="text-gray-500">Período:</span> {formatDateBRL(proposal.start_date)} à {formatDateBRL(proposal.end_date)}</div>
+                    <div><span className="text-gray-500">Prazo:</span> {getLeaseDurationMonths()} {getLeaseDurationMonths() === 1 ? "mês" : "meses"}</div>
+                    <div><span className="text-gray-500">Condição:</span> LOCAÇÃO</div>
+                    <div className="ml-auto text-right text-emerald-700 font-extrabold text-[10px]">Total Proposta: R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
                   </div>
 
                   {/*
