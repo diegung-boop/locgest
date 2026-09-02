@@ -398,13 +398,13 @@ export const OrganizationSettingsPage: React.FC = () => {
             {/* Background Watermark */}
             {formData.letterhead_enabled !== false && formData.letterhead_watermark_url && (
               <div 
-                className="absolute inset-0 flex items-center justify-center pointer-events-none p-12"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-full flex items-center justify-center p-8 z-0"
                 style={{ opacity: formData.letterhead_watermark_opacity ?? 0.10 }}
               >
                 <img
                   src={formData.letterhead_watermark_url}
                   alt="Marca d'Água"
-                  className="max-w-[80%] max-h-[70%] object-contain"
+                  className="max-w-[65%] max-h-[45%] object-contain"
                 />
               </div>
             )}

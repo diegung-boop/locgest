@@ -45,13 +45,13 @@ export const LetterheadContainer: React.FC<LetterheadContainerProps> = ({
       {/* Centered Watermark Layer */}
       {watermarkUrl && (
         <div
-          className="absolute inset-0 flex items-center justify-center pointer-events-none p-12 z-0"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-full flex items-center justify-center p-8 z-0"
           style={{ opacity }}
         >
           <img
             src={watermarkUrl}
             alt="Marca-d'Água"
-            className="max-w-[75%] max-h-[65%] object-contain"
+            className="max-w-[65%] max-h-[45%] object-contain"
           />
         </div>
       )}

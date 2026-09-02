@@ -588,14 +588,14 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                 {/* Background Watermark Layer */}
                 {organization.letterhead_enabled !== false && organization.letterhead_watermark_url && (
                   <div
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none p-12 z-0"
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-full flex items-center justify-center p-8 z-0"
                     style={{ opacity: organization.letterhead_watermark_opacity ?? 0.10 }}
                   >
                     <img
                       src={organization.letterhead_watermark_url}
                       crossOrigin="anonymous"
                       alt="Marca d'água"
-                      className="max-w-[70%] max-h-[60%] object-contain"
+                      className="max-w-[65%] max-h-[45%] object-contain"
                     />
                   </div>
                 )}
