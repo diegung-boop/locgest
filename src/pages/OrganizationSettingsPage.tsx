@@ -40,14 +40,38 @@ export const OrganizationSettingsPage: React.FC = () => {
   ) => {
     try {
       setLoadingState(true);
-      const url = await StorageService.uploadImage(file, "equipment-images", organization.id);
-      handleChange(targetField, url);
-      toast.success("Imagem atualizada com sucesso!");
+      // Branding assets must be persisted in Storage. Keeping a watermark as
+      // base64 in localStorage is not durable and can exceed the browser quota.
+      const url = await StorageService.uploadImage(
+        file,
+        "equipment-images",
+        organization.id,
+        false
+      );
+      const updated = { ...formData, [targetField]: url };
+      setFormData(updated);
+      await SupabaseDataService.saveOrganization(updated);
+      await refreshOrganization();
+      toast.success("Imagem enviada e salva com sucesso para a empresa!");
     } catch (err) {
       console.error("Upload error:", err);
-      toast.error("Erro ao processar imagem.");
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error(`Erro ao enviar imagem: ${message}`);
     } finally {
       setLoadingState(false);
+    }
+  };
+
+  const handleRemoveAsset = async (targetField: "logo_url" | "letterhead_watermark_url") => {
+    try {
+      const updated = { ...formData, [targetField]: null };
+      setFormData(updated);
+      await SupabaseDataService.saveOrganization(updated);
+      await refreshOrganization();
+      toast.success("Imagem removida!");
+    } catch (err) {
+      console.error("Remove asset error:", err);
+      toast.error("Erro ao remover imagem.");
     }
   };
 
@@ -200,7 +224,7 @@ export const OrganizationSettingsPage: React.FC = () => {
                         {formData.logo_url && (
                           <button
                             type="button"
-                            onClick={() => handleChange("logo_url", null)}
+                            onClick={() => handleRemoveAsset("logo_url")}
                             className="p-2.5 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 text-xs flex items-center gap-1.5 transition-all"
                             title="Remover Logo"
                           >
@@ -260,7 +284,7 @@ export const OrganizationSettingsPage: React.FC = () => {
                         {formData.letterhead_watermark_url && (
                           <button
                             type="button"
-                            onClick={() => handleChange("letterhead_watermark_url", null)}
+                            onClick={() => handleRemoveAsset("letterhead_watermark_url")}
                             className="p-3 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 text-xs transition-all shrink-0"
                             title="Remover Marca-d'Água"
                           >

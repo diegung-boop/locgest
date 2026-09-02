@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Contract, Client, Organization } from "@/types/locgest";
+import { Contract, Client, Organization, EquipmentCatalog, ProposalItem } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
 import { StorageService } from "@/services/storageService";
 import { X, Download, CloudLightning, FileText, Send, Check, Mail } from "lucide-react";
@@ -25,6 +25,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
   // Editable configurations preloaded with approved proposal / contract values
   const [deliveryFreight, setDeliveryFreight] = useState("1.000,00");
   const [retrievalFreight, setRetrievalFreight] = useState("1.000,00");
+  const [catalogList, setCatalogList] = useState<EquipmentCatalog[]>([]);
   const [objectValue, setObjectValue] = useState("40.000,00");
   const [forumCity, setForumCity] = useState("Eusébio (CE)");
 
@@ -75,6 +76,26 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => {
+    const loadCatalog = async () => {
+      const cats = await SupabaseDataService.getEquipmentCatalog(organization.id);
+      setCatalogList(cats);
+    };
+    loadCatalog();
+  }, [organization.id]);
+
+  const getItemDescription = (item: ProposalItem) => {
+    if (!item) return "";
+    if (item.equipment_description) return item.equipment_description;
+    if (item.description) return item.description;
+    if (!item.equipment_name) return "";
+    const nameLower = item.equipment_name.toLowerCase().trim();
+    const matched = catalogList.find(
+      (c) => c.name && c.name.toLowerCase().trim() === nameLower
+    );
+    return matched?.description || "";
+  };
+
   const formatDateBRL = (dateStr: string) => {
     if (!dateStr) return "";
     const [year, month, day] = dateStr.split("-");
@@ -120,13 +141,13 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
     return list;
   };
 
-  const handleExportPDF = async (shouldUpload: boolean) => {
+  const handleExportPDF = async (shouldUpload: boolean, shouldDownload: boolean = false): Promise<string | null> => {
     try {
       setIsExporting(true);
       const element = document.getElementById("formal-contract-pdf-content");
       if (!element) {
         toast.error("Erro ao localizar conteúdo do contrato.");
-        return;
+        return null;
       }
 
       // Convert logo to base64 if available to print dynamically on jsPDF pages
@@ -234,7 +255,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
         if (htmlFooter) htmlFooter.style.display = "block";
         element.style.padding = originalPadding;
         setIsExporting(false);
-        return;
+        return null;
       }
 
       const pdfObj = await worker;
@@ -244,6 +265,18 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
       if (htmlHeader) htmlHeader.style.display = "flex";
       if (htmlFooter) htmlFooter.style.display = "block";
       element.style.padding = originalPadding;
+
+      // If download is requested alongside upload, save to user's local disk
+      if (shouldDownload) {
+        const downloadUrl = URL.createObjectURL(pdfBlob);
+        const downloadLink = document.createElement("a");
+        downloadLink.href = downloadUrl;
+        downloadLink.download = `Contrato_${contract.contract_number}.pdf`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(downloadUrl);
+      }
 
       const file = new File([pdfBlob], `Contrato_${contract.contract_number}.pdf`, {
         type: "application/pdf",
@@ -261,6 +294,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
       setPdfUrl(uploadedUrl);
       toast.success("PDF do Contrato gerado e salvo com sucesso!");
       onSuccess();
+      return uploadedUrl;
     } catch (err) {
       console.error("Error generating/uploading PDF:", err);
       toast.error("Erro ao gerar/salvar PDF.");
@@ -272,6 +306,7 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
       if (htmlFooter) htmlFooter.style.display = "block";
       const element = document.getElementById("formal-contract-pdf-content");
       if (element) element.style.padding = "";
+      return null;
     } finally {
       setIsExporting(false);
     }
@@ -287,23 +322,64 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
     window.open(whatsappUrl, "_blank");
   };
 
-  const handleSendEmail = () => {
-    if (!pdfUrl) {
-      toast.warning("Gere e salve o PDF do contrato primeiro.");
-      return;
-    }
+  const handleSendEmail = async () => {
     const emailTo = client?.email;
     if (!emailTo) {
       toast.error("O cliente não possui e-mail cadastrado.");
       return;
     }
 
+    toast.info("Baixando o PDF do contrato e preparando o e-mail...");
+    let finalPdfUrl = pdfUrl || contract.pdf_url || "";
+
+    try {
+      // Always generate, upload and download the PDF file to user's computer
+      const uploadedUrl = await handleExportPDF(true, true);
+      if (uploadedUrl) {
+        finalPdfUrl = uploadedUrl;
+      }
+    } catch (err) {
+      toast.error("Erro ao gerar PDF.");
+      return;
+    }
+
+    const isPublicHttpUrl = finalPdfUrl.startsWith("http://") || finalPdfUrl.startsWith("https://");
     const subject = `Contrato de Locação nº ${contract.contract_number} - ${organization.name}`;
-    const body = `Olá ${client?.contact_person || client?.company_name || ""},\n\nSegue nosso Contrato de Locação de Bens Móveis nº ${contract.contract_number} formalizado:\n\n📄 Visualizar Contrato: ${pdfUrl}\n\nFicamos no aguardo da assinatura.\n\nAtenciosamente,\n${organization.name}`;
+    const bodyParts = [
+      `Olá ${client?.contact_person || client?.company_name || ""},`,
+      ``,
+      `Segue formalizado nosso Contrato de Locação de Bens Móveis nº ${contract.contract_number}.`,
+    ];
+
+    if (isPublicHttpUrl) {
+      bodyParts.push(``, `📄 Link de Acesso ao Contrato: ${finalPdfUrl}`);
+    }
+
+    bodyParts.push(
+      ``,
+      `📎 O documento em PDF também segue em anexo a esta mensagem.`,
+      ``,
+      `Ficamos no aguardo da assinatura.`,
+      ``,
+      `Atenciosamente,`,
+      `${organization.name}`
+    );
+    const body = bodyParts.join("\n");
 
     const mailtoUrl = `mailto:${emailTo}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailtoUrl;
-    toast.success(`Abrindo cliente de e-mail para ${emailTo}...`);
+
+    // Use an anchor element to reliably trigger mailto on all browsers
+    const a = document.createElement("a");
+    a.href = mailtoUrl;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    toast.success("PDF baixado para seu computador! Basta anexá-lo no e-mail que se abriu.", {
+      duration: 6000,
+    });
   };
 
   const formatAddress = (org: any) => {
@@ -392,8 +468,9 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
               <input
                 type="date"
                 value={contractDate}
+                onClick={(e) => e.currentTarget.showPicker?.()}
                 onChange={(e) => setContractDate(e.target.value)}
-                className="w-full p-2 rounded-xl bg-slate-900 border border-white/10 text-white font-medium focus:outline-none focus:border-tenant"
+                className="w-full p-2 rounded-xl bg-slate-900 border border-white/10 text-white font-medium focus:outline-none focus:border-tenant cursor-pointer"
               />
             </div>
 
@@ -461,9 +538,9 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
 
               <button
                 onClick={handleSendEmail}
-                disabled={!pdfUrl}
+                disabled={isExporting}
                 title={client?.email ? `Enviar para ${client.email}` : "Sem e-mail cadastrado"}
-                className={`py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-xs ${pdfUrl
+                className={`py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all text-xs ${client?.email
                   ? "bg-sky-600 hover:bg-sky-500 text-white shadow-lg shadow-sky-600/20"
                   : "bg-slate-800 text-muted-foreground cursor-not-allowed"
                   }`}
@@ -585,19 +662,32 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                   }
                 `}</style>
 
-                {/* Background Watermark Layer */}
+                {/* Background Watermark Layer (Repeated for Page 1 and Page 2 of Contract) */}
                 {organization.letterhead_enabled !== false && organization.letterhead_watermark_url && (
-                  <div
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-full flex items-center justify-center p-8 z-0"
-                    style={{ opacity: organization.letterhead_watermark_opacity ?? 0.10 }}
-                  >
-                    <img
-                      src={organization.letterhead_watermark_url}
-                      crossOrigin="anonymous"
-                      alt="Marca d'água"
-                      className="max-w-[65%] max-h-[45%] object-contain"
-                    />
-                  </div>
+                  <>
+                    <div
+                      className="absolute top-[450px] left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-full flex items-center justify-center p-8 z-0"
+                      style={{ opacity: organization.letterhead_watermark_opacity ?? 0.10 }}
+                    >
+                      <img
+                        src={organization.letterhead_watermark_url}
+                        crossOrigin="anonymous"
+                        alt="Marca d'água"
+                        className="max-w-[480px] max-h-[350px] object-contain"
+                      />
+                    </div>
+                    <div
+                      className="absolute top-[1350px] left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none w-full flex items-center justify-center p-8 z-0"
+                      style={{ opacity: organization.letterhead_watermark_opacity ?? 0.10 }}
+                    >
+                      <img
+                        src={organization.letterhead_watermark_url}
+                        crossOrigin="anonymous"
+                        alt="Marca d'água"
+                        className="max-w-[480px] max-h-[350px] object-contain"
+                      />
+                    </div>
+                  </>
                 )}
 
                 {/* Header (Hidden dynamically during print) */}
@@ -654,17 +744,22 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
                     <strong>EQUIPAMENTO(S) LOCADO(S):</strong>
                   </p>
                   <div className="pl-4 space-y-2">
-                    {contract.proposal?.equipment_items?.map((item, idx) => (
-                      <div key={item.id} className="border border-neutral-300 p-2 rounded text-[10px]">
-                        <span className="font-bold">Item {idx + 1}: 01 (UM) {item.equipment_name}</span> - Categoria: {item.equipment_code}<br />
-                        <span className="text-[9px] text-neutral-600">Descrição/Detalhamento: {item.equipment_name} para locação corporativa padrão.</span>
-                      </div>
-                    )) || (
-                        <div className="border border-neutral-300 p-2 rounded text-[10px]">
-                          <span className="font-bold">Equipamentos do Contrato</span><br />
-                          <span className="text-[9px] text-neutral-600">Conforme listados na proposta comercial vinculada.</span>
+                    {contract.proposal?.equipment_items?.map((item, idx) => {
+                      const eqName = item?.equipment_name || "Equipamento Cotado";
+                      const desc = getItemDescription(item) || `${eqName} para locação corporativa padrão.`;
+                      const qtyFormatted = String(item?.qty || 1).padStart(2, "0");
+                      return (
+                        <div key={item?.id || idx} className="border border-neutral-300 p-2 rounded text-[10px]">
+                          <span className="font-bold">Item {idx + 1}: {qtyFormatted} (UM) {eqName}</span><br />
+                          <span className="text-[9px] text-neutral-600">Descrição/Detalhamento: {desc}</span>
                         </div>
-                      )}
+                      );
+                    }) || (
+                      <div className="border border-neutral-300 p-2 rounded text-[10px]">
+                        <span className="font-bold">Equipamentos do Contrato</span><br />
+                        <span className="text-[9px] text-neutral-600">Conforme listados na proposta comercial vinculada.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

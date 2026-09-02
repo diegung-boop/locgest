@@ -35,61 +35,136 @@ export class SupabaseDataService {
     } catch (e) {}
   }
 
+  static getOrgLetterheadSettings(orgId: string): Partial<Organization> | null {
+    try {
+      const saved = localStorage.getItem(`locgest_org_letterhead_${orgId}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static setOrgLetterheadSettings(orgId: string, org: Organization): void {
+    try {
+      const payload = {
+        letterhead_enabled: org.letterhead_enabled,
+        letterhead_watermark_url: org.letterhead_watermark_url,
+        letterhead_watermark_opacity: org.letterhead_watermark_opacity,
+        logo_url: org.logo_url,
+      };
+      localStorage.setItem(`locgest_org_letterhead_${orgId}`, JSON.stringify(payload));
+    } catch (e) {}
+  }
+
   static async getOrganizations(): Promise<Organization[]> {
     try {
       const { data, error } = await supabase.from("organizations").select("*");
       const mockOrgs = MockDataService.getOrganizations();
-      if (error) {
-        console.error("Supabase getOrganizations error:", error);
-        return mockOrgs.map((m) => ({
-          ...m,
-          require_equipment_availability: this.getOrgAvailabilityRule(m.id, m.require_equipment_availability),
-        }));
-      }
-      const rawOrgs = (data || []) as any[];
-      if (rawOrgs.length === 0) {
-        return mockOrgs.map((m) => ({
-          ...m,
-          require_equipment_availability: this.getOrgAvailabilityRule(m.id, m.require_equipment_availability),
-        }));
-      }
-      return rawOrgs.map((dbOrg) => {
-        const mockMatch = mockOrgs.find((m) => m.id === dbOrg.id);
-        const reqAvail = this.getOrgAvailabilityRule(dbOrg.id, dbOrg.require_equipment_availability);
+
+      const mergeOrg = (dbOrg: any, mockOrg: any) => {
+        const orgId = dbOrg?.id || mockOrg?.id;
+        const savedLetterhead = orgId ? this.getOrgLetterheadSettings(orgId) : null;
+        const reqAvail = orgId ? this.getOrgAvailabilityRule(orgId, dbOrg?.require_equipment_availability ?? mockOrg?.require_equipment_availability) : true;
+
+        const watermarkUrl =
+          dbOrg?.letterhead_watermark_url ||
+          savedLetterhead?.letterhead_watermark_url ||
+          mockOrg?.letterhead_watermark_url ||
+          null;
+
+        const logoUrl =
+          dbOrg?.logo_url ||
+          savedLetterhead?.logo_url ||
+          mockOrg?.logo_url ||
+          null;
+
+        const enabled =
+          dbOrg?.letterhead_enabled ??
+          savedLetterhead?.letterhead_enabled ??
+          mockOrg?.letterhead_enabled ??
+          true;
+
+        const opacity =
+          dbOrg?.letterhead_watermark_opacity ??
+          savedLetterhead?.letterhead_watermark_opacity ??
+          mockOrg?.letterhead_watermark_opacity ??
+          0.10;
+
         return {
-          ...mockMatch,
+          ...mockOrg,
           ...dbOrg,
+          logo_url: logoUrl,
+          letterhead_enabled: enabled,
+          letterhead_watermark_url: watermarkUrl,
+          letterhead_watermark_opacity: opacity,
           require_equipment_availability: reqAvail,
         };
+      };
+
+      if (error || !data || data.length === 0) {
+        return mockOrgs.map((m) => mergeOrg(null, m));
+      }
+
+      return data.map((dbOrg: any) => {
+        const mockMatch = mockOrgs.find((m) => m.id === dbOrg.id);
+        return mergeOrg(dbOrg, mockMatch);
       }) as Organization[];
     } catch (e) {
       console.error("Supabase getOrganizations failed:", e);
-      return MockDataService.getOrganizations().map((m) => ({
-        ...m,
-        require_equipment_availability: this.getOrgAvailabilityRule(m.id, m.require_equipment_availability),
-      }));
+      return MockDataService.getOrganizations().map((m) => {
+        const reqAvail = this.getOrgAvailabilityRule(m.id, m.require_equipment_availability);
+        const letterhead = this.getOrgLetterheadSettings(m.id);
+        return {
+          ...m,
+          require_equipment_availability: reqAvail,
+          ...(letterhead || {}),
+        };
+      });
     }
   }
 
   static async saveOrganization(org: Organization): Promise<void> {
     if (org.id) {
       this.setOrgAvailabilityRule(org.id, org.require_equipment_availability !== false);
+      this.setOrgLetterheadSettings(org.id, org);
     }
     MockDataService.saveOrganization(org);
 
+    // Build the DB record with ONLY columns that exist in the Supabase `organizations` table.
+    // Original schema columns: id, name, slug, trade_name, cnpj, logo_url, primary_color, plan, status, phone, email, address
+    // Added via migrations: ie, address_st, address_number, address_neighborhood, address_city, address_estate, address_zipcode,
+    //   require_equipment_availability, letterhead_enabled, letterhead_watermark_url, letterhead_watermark_opacity,
+    //   letterhead_header_url, letterhead_footer_url, letterhead_header_text, letterhead_footer_text, letterhead_logo_height, letterhead_header_height
     const dbRecord: Record<string, any> = {
       id: org.id,
       name: org.name,
       slug: org.slug,
       trade_name: org.trade_name || null,
       cnpj: org.cnpj || null,
-      ie: org.ie || null,
       logo_url: org.logo_url || null,
       primary_color: org.primary_color || "#0284c7",
       plan: org.plan || "pro",
       status: org.status || "active",
       phone: org.phone || null,
       email: org.email || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Letterhead columns (added via add_letterhead_columns.sql migration)
+    const letterheadFields: Record<string, any> = {
+      letterhead_enabled: org.letterhead_enabled !== false,
+      letterhead_watermark_url: org.letterhead_watermark_url || null,
+      letterhead_watermark_opacity: org.letterhead_watermark_opacity ?? 0.10,
+      letterhead_header_url: org.letterhead_header_url || null,
+      letterhead_footer_url: org.letterhead_footer_url || null,
+      letterhead_header_text: org.letterhead_header_text || null,
+      letterhead_footer_text: org.letterhead_footer_text || null,
+      letterhead_logo_height: org.letterhead_logo_height ?? 130,
+    };
+
+    // Extra address columns (may or may not exist depending on migrations run)
+    const addressFields: Record<string, any> = {
+      ie: org.ie || null,
       address_st: org.address_st || null,
       address_number: org.address_number || null,
       address_neighborhood: org.address_neighborhood || null,
@@ -97,47 +172,72 @@ export class SupabaseDataService {
       address_estate: org.address_estate || null,
       address_zipcode: org.address_zipcode || null,
       require_equipment_availability: org.require_equipment_availability !== false,
-      letterhead_enabled: org.letterhead_enabled !== false,
-      letterhead_header_url: org.letterhead_header_url || null,
-      letterhead_footer_url: org.letterhead_footer_url || null,
-      letterhead_watermark_url: org.letterhead_watermark_url || null,
-      letterhead_watermark_opacity: org.letterhead_watermark_opacity ?? 0.10,
-      letterhead_header_text: org.letterhead_header_text || null,
-      letterhead_footer_text: org.letterhead_footer_text || null,
-      letterhead_logo_height: org.letterhead_logo_height ?? 75,
-      letterhead_header_height: org.letterhead_header_height ?? 80,
-      updated_at: new Date().toISOString(),
     };
 
     // Save to mock / local cache so changes are immediate
     MockDataService.saveOrganization(org);
 
     try {
-      let res = await supabaseAdmin.from("organizations").upsert(dbRecord);
+      const persistOrganization = async (record: Record<string, any>) => {
+        const { id, ...changes } = record;
+
+        // An existing organization must be updated, not upserted. PostgreSQL
+        // evaluates UPSERT as a possible INSERT, which incorrectly requires
+        // tenant users to have permission to create organizations.
+        const updateResult = await supabase
+          .from("organizations")
+          .update(changes)
+          .eq("id", id)
+          .select("id");
+
+        if (updateResult.error) return updateResult;
+        if ((updateResult.data || []).length > 0) return updateResult;
+
+        const existingResult = await supabase
+          .from("organizations")
+          .select("id")
+          .eq("id", id)
+          .maybeSingle();
+
+        if (existingResult.data) {
+          throw new Error("Seu usuário não tem permissão para atualizar esta empresa.");
+        }
+
+        // This path is used only by the SuperAdmin organization-creation flow.
+        return supabaseAdmin
+          .from("organizations")
+          .insert(record)
+          .select("id");
+      };
+
+      // Attempt 1: Try with ALL columns (base + letterhead + address)
+      const fullRecord = {
+        ...dbRecord,
+        ...letterheadFields,
+        ...addressFields,
+        // Optional layout field from the latest migration. Older databases do
+        // not have it yet, so the compatibility retry below intentionally
+        // omits only this field while preserving the watermark URL.
+        letterhead_header_height: org.letterhead_header_height ?? 80,
+      };
+      const res = await persistOrganization(fullRecord);
+
       if (res.error) {
-        res = await supabase.from("organizations").upsert(dbRecord);
-      }
-      if (res.error) {
-        const {
-          require_equipment_availability,
-          letterhead_enabled,
-          letterhead_header_url,
-          letterhead_footer_url,
-          letterhead_watermark_url,
-          letterhead_watermark_opacity,
-          letterhead_header_text,
-          letterhead_footer_text,
-          letterhead_logo_height,
-          letterhead_header_height,
-          ...baseRecord
-        } = dbRecord;
-        let retryRes = await supabaseAdmin.from("organizations").upsert(baseRecord);
-        if (retryRes.error) {
-          await supabase.from("organizations").upsert(baseRecord);
+        console.warn("Full organization save failed, trying base + letterhead only:", res.error.message);
+        // Attempt 2: Try with base + letterhead (without extra address columns)
+        const partialRecord = { ...dbRecord, ...letterheadFields };
+        const res2 = await persistOrganization(partialRecord);
+
+        if (res2.error) {
+          // Do not report success after silently discarding the watermark.
+          // This normally means the letterhead migration has not been applied
+          // or the current user cannot update this organization.
+          throw new Error(`Não foi possível persistir o papel timbrado: ${res2.error.message}`);
         }
       }
     } catch (e) {
-      console.warn("Supabase saveOrganization warning:", e);
+      console.error("Supabase saveOrganization failed:", e);
+      throw e;
     }
   }
 

@@ -45,7 +45,7 @@ export const PricingSettingsPage: React.FC = () => {
   }, [organization.id]);
 
   // Treat unset (e.g. pre-migration rows) as enabled, matching the DB default.
-  const isAvailabilityRuleEnabled = organization.require_equipment_availability !== false;
+  const isAvailabilityRuleEnabled = organization?.require_equipment_availability !== false;
 
   const handleToggleAvailabilityRule = async () => {
     if (isSavingAvailabilityRule) return;

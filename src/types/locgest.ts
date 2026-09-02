@@ -165,9 +165,12 @@ export interface Client {
 }
 
 export interface ProposalItem {
+  id?: string;
   equipment_id: string;
   equipment_code: string;
   equipment_name: string;
+  equipment_description?: string;
+  description?: string;
   daily_rate: number;
   monthly_rate: number;
   qty: number;

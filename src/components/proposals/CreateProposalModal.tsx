@@ -5,6 +5,14 @@ import { SupabaseDataService } from "@/services/supabaseDataService";
 import { FileText, X, Building2, Calendar, Plus, Trash2, Layers, AlertTriangle, Truck, Loader2, Zap } from "lucide-react";
 import { toast } from "sonner";
 
+const formatDateBRL = (dateStr: string): string => {
+  if (!dateStr) return "";
+  const clean = dateStr.split("T")[0];
+  const parts = clean.split("-");
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
+
 interface CreateProposalModalProps {
   onClose: () => void;
   onSuccess: () => void;
@@ -47,68 +55,121 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
     { equipment_id: "", qty: 1, duration_months: 1 },
   ]);
 
-  const isEquipmentAvailable = (eq: Equipment, targetDateStr: string): boolean => {
-    if (eq.status === "Interno") {
-      return false;
-    }
+  const parseDateOnly = (dateStr: string | null | undefined): Date | null => {
+    if (!dateStr) return null;
+    const cleanStr = dateStr.split("T")[0];
+    if (!cleanStr) return null;
+    const d = new Date(cleanStr + "T00:00:00");
+    return isNaN(d.getTime()) ? null : d;
+  };
 
-    // Org-level opt-out: skip the status/contract/maintenance availability
-    // computation entirely and offer the full stock (Interno excluded above,
-    // since that exclusion is independent of this rule). Default (flag unset
-    // or true) keeps the rule enforced.
-    if (organization.require_equipment_availability === false) {
+  const isEquipmentAvailable = (
+    eq: Equipment,
+    targetStartDateStr: string,
+    targetEndDateStr?: string
+  ): boolean => {
+    try {
+      if (!eq) return false;
+      if (eq.status === "Interno") {
+        return false;
+      }
+
+      // Org-level opt-out: skip status/contract/proposal/maintenance availability
+      // computation entirely and offer full stock (Interno excluded above).
+      if (organization?.require_equipment_availability === false) {
+        return true;
+      }
+
+      const reqStart = parseDateOnly(targetStartDateStr);
+      if (!reqStart) return true;
+
+      const reqEnd = parseDateOnly(targetEndDateStr) || reqStart;
+
+      // Overlap helper: Range A [reqStart, reqEnd] overlaps Range B [bStart, bEnd]
+      // iff reqStart <= bEnd && reqEnd >= bStart
+      const isOverlapping = (bStartStr: string | null | undefined, bEndStr: string | null | undefined): boolean => {
+        const bStart = parseDateOnly(bStartStr);
+        if (!bStart) return false;
+
+        const bEnd = parseDateOnly(bEndStr) || new Date("2099-12-31T23:59:59");
+
+        return reqStart <= bEnd && reqEnd >= bStart;
+      };
+
+      const isAssetInItems = (itemList: ProposalItem[] | undefined): boolean => {
+        if (!itemList || !Array.isArray(itemList) || itemList.length === 0) return false;
+        if (!eq) return false;
+        const eqId = eq.id ? String(eq.id) : "";
+        const eqCode = eq.code ? String(eq.code).trim().toLowerCase() : "";
+        const eqName = eq.name ? String(eq.name).trim().toLowerCase() : "";
+
+        return itemList.some((item) => {
+          if (!item) return false;
+          const iId = item.equipment_id ? String(item.equipment_id) : "";
+          const iCode = item.equipment_code ? String(item.equipment_code).trim().toLowerCase() : "";
+          const iName = item.equipment_name ? String(item.equipment_name).trim().toLowerCase() : "";
+
+          if (eqId && iId && eqId === iId) return true;
+          if (eqCode && iCode && eqCode === iCode) return true;
+          if (eqName && iName && eqName === iName) return true;
+          return false;
+        });
+      };
+
+      // 1. Check overlap with active/pending contracts
+      const hasContractOverlap = (contracts || []).some((contract) => {
+        if (!contract) return false;
+        if (contract.status === "Finished" || contract.status === "Terminated") return false;
+
+        let hasAsset = isAssetInItems(contract.proposal?.equipment_items);
+        if (!hasAsset && contract.proposal_id) {
+          const associatedProposal = (proposals || []).find((p) => p?.id === contract.proposal_id);
+          hasAsset = isAssetInItems(associatedProposal?.equipment_items);
+        }
+
+        if (!hasAsset) return false;
+
+        return isOverlapping(contract.start_date, contract.end_date);
+      });
+
+      if (hasContractOverlap) return false;
+
+      // 2. Check overlap with active proposals (Approved, Sent, Draft)
+      const hasProposalOverlap = (proposals || []).some((prop) => {
+        if (!prop) return false;
+        if (prop.status === "Rejected" || prop.status === "Cancelled") return false;
+
+        const hasAsset = isAssetInItems(prop.equipment_items);
+        if (!hasAsset) return false;
+
+        return isOverlapping(prop.start_date, prop.end_date);
+      });
+
+      if (hasProposalOverlap) return false;
+
+      // 3. Check overlap with scheduled or in progress maintenance blocks
+      const hasMaintenanceOverlap = (maintenances || []).some((m) => {
+        if (!m || m.asset_id !== eq.id) return false;
+        if (m.status === "Completed") return false;
+
+        return isOverlapping(m.start_date, m.end_date);
+      });
+
+      if (hasMaintenanceOverlap) return false;
+
+      // 4. Fallback: if asset status is physically Rented, Reserved, or Maintenance today
+      if (eq.status === "Rented" || eq.status === "Reserved" || eq.status === "Maintenance") {
+        const todayStr = new Date().toISOString().split("T")[0];
+        if (isOverlapping(todayStr, null)) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Error evaluating isEquipmentAvailable:", err);
       return true;
     }
-
-    // NOTE: intentionally NOT short-circuiting on eq.status === "Available" here.
-    // Nothing in the app keeps that field in sync with active contracts (it's only
-    // ever set manually), so trusting it directly would let a booked asset with a
-    // stale "Available" status bypass the contract-overlap check below entirely.
-    // The overlap check is the actual source of truth for date-based availability.
-
-    if (!targetDateStr) return true;
-    const targetDate = new Date(targetDateStr + "T00:00:00");
-    if (isNaN(targetDate.getTime())) return true;
-
-    // Check overlap with active/pending contracts
-    const hasContractOverlap = contracts.some((contract) => {
-      if (contract.status === "Finished" || contract.status === "Terminated") return false;
-
-      const associatedProposal = proposals.find((p) => p.id === contract.proposal_id);
-      if (!associatedProposal) return false;
-
-      const hasAsset = associatedProposal.equipment_items?.some(
-        (item) => item.equipment_id === eq.id
-      );
-      if (!hasAsset) return false;
-
-      const start = new Date(contract.start_date + "T00:00:00");
-      const end = new Date(contract.end_date + "T00:00:00");
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
-
-      return targetDate >= start && targetDate <= end;
-    });
-
-    if (hasContractOverlap) return false;
-
-    // Check overlap with scheduled or in progress maintenance blocks
-    const hasMaintenanceOverlap = maintenances.some((m) => {
-      if (m.asset_id !== eq.id) return false;
-      if (m.status === "Completed") return false;
-
-      const start = new Date(m.start_date + "T00:00:00");
-      const end = m.end_date ? new Date(m.end_date + "T00:00:00") : null;
-      if (isNaN(start.getTime())) return false;
-
-      if (end && !isNaN(end.getTime())) {
-        return targetDate >= start && targetDate <= end;
-      }
-      return targetDate >= start;
-    });
-
-    if (hasMaintenanceOverlap) return false;
-
-    return true;
   };
 
   const loadData = async () => {
@@ -200,7 +261,7 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
 
   // Multi-Item Form Handlers
   const handleAddItem = () => {
-    const available = equipmentList.filter((eq) => isEquipmentAvailable(eq, formData.start_date));
+    const available = equipmentList.filter((eq) => isEquipmentAvailable(eq, formData.start_date, calculatedEndDate));
     const defaultEqId = available[0]?.id || equipmentList[0]?.id || "";
     setItems((prev) => [...prev, { equipment_id: defaultEqId, qty: 1, duration_months: maxDurationMonths }]);
   };
@@ -245,6 +306,19 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
       return;
     }
 
+    if (organization.require_equipment_availability !== false) {
+      for (const item of items) {
+        const eq = equipmentList.find((e) => e.id === item.equipment_id);
+        const itemEndDate = calculateMonthlyEndDate(formData.start_date, item.duration_months);
+        if (eq && !isEquipmentAvailable(eq, formData.start_date, itemEndDate)) {
+          toast.error(
+            `O equipamento "${eq.code} - ${eq.name}" está indisponível para o período de ${formatDateBRL(formData.start_date)} a ${formatDateBRL(itemEndDate)}.`
+          );
+          return;
+        }
+      }
+    }
+
     try {
       setIsSaving(true);
       const proposalItems: ProposalItem[] = items.map((item) => {
@@ -261,6 +335,7 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
           equipment_id: eq?.id || item.equipment_id,
           equipment_code: eq?.code || "EQ-ITEM",
           equipment_name: eq?.name || "Equipamento Cotado",
+          equipment_description: eq?.description || eq?.catalog_item?.description || "",
           daily_rate: eq?.daily_rate || 0,
           monthly_rate: monthlyRate,
           qty: Number(item.qty),
@@ -302,8 +377,8 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
   const lockedClient = clients.find((c) => c.id === preselectedClientId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-2xl p-6 rounded-2xl glass-panel border border-white/20 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 pb-4 px-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+      <div className="w-full max-w-2xl p-6 rounded-2xl glass-panel border border-white/20 space-y-4 max-h-[calc(100vh-5rem)] overflow-y-auto">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <FileText className="w-5 h-5 text-tenant" /> Montar Proposta Comercial Multi-Equipamento
@@ -354,8 +429,9 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
                 type="date"
                 required
                 value={formData.start_date}
+                onClick={(e) => e.currentTarget.showPicker?.()}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full p-2.5 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold"
+                className="w-full p-2.5 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-tenant font-semibold cursor-pointer"
               />
             </div>
             <div>
@@ -440,41 +516,55 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
                           onChange={(e) => handleUpdateItem(idx, "equipment_id", e.target.value)}
                           className="w-full p-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-tenant text-xs"
                         >
-                          {equipmentList
-                            .filter((eq) => isEquipmentAvailable(eq, formData.start_date) || eq.id === item.equipment_id)
-                            .map((eq) => {
-                              const sizeTag = eq.catalog_item?.size_dimension ? ` [${eq.catalog_item.size_dimension}]` : "";
-                              const rateTag = eq.monthly_rate > 0 ? ` (R$ ${eq.monthly_rate.toLocaleString("pt-BR")}/mês)` : "";
-                              return (
-                                <option key={eq.id} value={eq.id}>
-                                  {eq.code} - {eq.name}{sizeTag}{rateTag}
-                                </option>
-                              );
-                            })}
+                          {(() => {
+                            const itemEndDate = calculateMonthlyEndDate(formData.start_date, item.duration_months);
+                            return equipmentList
+                              .filter((eq) => isEquipmentAvailable(eq, formData.start_date, itemEndDate) || eq.id === item.equipment_id)
+                              .map((eq) => {
+                                const avail = isEquipmentAvailable(eq, formData.start_date, itemEndDate);
+                                const availLabel = !avail && organization.require_equipment_availability !== false ? " ⚠️ (INDISPONÍVEL)" : "";
+                                const sizeTag = eq.catalog_item?.size_dimension ? ` [${eq.catalog_item.size_dimension}]` : "";
+                                const rateTag = eq.monthly_rate > 0 ? ` (R$ ${eq.monthly_rate.toLocaleString("pt-BR")}/mês)` : "";
+                                return (
+                                  <option key={eq.id} value={eq.id} disabled={!avail && organization.require_equipment_availability !== false}>
+                                    {eq.code} - {eq.name}{sizeTag}{rateTag}{availLabel}
+                                  </option>
+                                );
+                              });
+                          })()}
                         </select>
 
                         {/* Selected Equipment Pricing & Size Info Badge */}
                         {(() => {
                           const selectedEq = equipmentList.find((e) => e.id === item.equipment_id);
                           if (!selectedEq) return null;
+                          const itemEndDate = calculateMonthlyEndDate(formData.start_date, item.duration_months);
+                          const isAvailable = isEquipmentAvailable(selectedEq, formData.start_date, itemEndDate);
                           const size = selectedEq.catalog_item?.size_dimension || "Padrão";
                           const rule = getItemTierRule(item.equipment_id, item.duration_months);
                           const activeRate = rule ? rule.monthly_rate : selectedEq.monthly_rate;
 
                           return (
-                            <div className="flex items-center gap-2 mt-1.5 text-[11px] flex-wrap">
-                              <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold">
-                                {size}
-                              </span>
-                              {rule ? (
-                                <span className="px-2 py-0.5 rounded bg-tenant/20 border border-tenant/40 text-tenant font-extrabold flex items-center gap-1">
-                                  <Zap className="w-3 h-3 text-amber-400" /> Faixa de Prazo: R$ {activeRate.toLocaleString("pt-BR")}/mês
-                                </span>
-                              ) : (
-                                <span className="text-emerald-400 font-bold">
-                                  Tarifa Base: R$ {activeRate.toLocaleString("pt-BR")}/mês
-                                </span>
+                            <div className="space-y-1 mt-1.5">
+                              {!isAvailable && organization.require_equipment_availability !== false && (
+                                <div className="px-2 py-1 rounded bg-red-500/20 border border-red-500/40 text-red-300 text-[11px] font-bold flex items-center gap-1.5">
+                                  ⚠️ Equipamento reservado/indisponível para o período ({formatDateBRL(formData.start_date)} à {formatDateBRL(itemEndDate)}).
+                                </div>
                               )}
+                              <div className="flex items-center gap-2 text-[11px] flex-wrap">
+                                <span className="px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold">
+                                  {size}
+                                </span>
+                                {rule ? (
+                                  <span className="px-2 py-0.5 rounded bg-tenant/20 border border-tenant/40 text-tenant font-extrabold flex items-center gap-1">
+                                    <Zap className="w-3 h-3 text-amber-400" /> Faixa de Prazo: R$ {activeRate.toLocaleString("pt-BR")}/mês
+                                  </span>
+                                ) : (
+                                  <span className="text-emerald-400 font-bold">
+                                    Tarifa Base: R$ {activeRate.toLocaleString("pt-BR")}/mês
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           );
                         })()}

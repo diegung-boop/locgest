@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Proposal, Client, Organization } from "@/types/locgest";
+import { Proposal, Client, Organization, EquipmentCatalog, ProposalItem } from "@/types/locgest";
 import { SupabaseDataService } from "@/services/supabaseDataService";
 import { StorageService } from "@/services/storageService";
 import { X, Download, CloudLightning, FileText, Send, Check } from "lucide-react";
@@ -26,6 +26,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
   // Editable configurations
   const [deliveryFreight, setDeliveryFreight] = useState("1.000,00");
   const [retrievalFreight, setRetrievalFreight] = useState("1.000,00");
+  const [catalogList, setCatalogList] = useState<EquipmentCatalog[]>([]);
   const [validityDate, setValidityDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
@@ -108,6 +109,9 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
 
   useEffect(() => {
     const applyTierDefaults = async () => {
+      const catalogListRes = await SupabaseDataService.getEquipmentCatalog(organization.id);
+      setCatalogList(catalogListRes);
+
       const durationMonths = getLeaseDurationMonths();
       const rules = await SupabaseDataService.getPricingTierRules(organization.id);
       if (rules.length === 0) return;
@@ -115,8 +119,7 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
       const firstItem = proposal.equipment_items?.[0];
       if (!firstItem) return;
 
-      const catalogList = await SupabaseDataService.getEquipmentCatalog(organization.id);
-      const matchedCat = catalogList.find((c) => c.name.toLowerCase() === firstItem.equipment_name.toLowerCase());
+      const matchedCat = catalogListRes.find((c) => c.name.toLowerCase() === firstItem.equipment_name.toLowerCase());
       const catalogId = matchedCat?.id || "cat-001";
 
       const matchingRules = rules.filter((r) => r.catalog_id === catalogId);
@@ -139,6 +142,18 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
 
     applyTierDefaults();
   }, [proposal.id, organization.id]);
+
+  const getItemDescription = (item: ProposalItem) => {
+    if (!item) return "";
+    if (item.equipment_description) return item.equipment_description;
+    if (item.description) return item.description;
+    if (!item.equipment_name) return "";
+    const nameLower = item.equipment_name.toLowerCase().trim();
+    const matched = catalogList.find(
+      (c) => c.name && c.name.toLowerCase().trim() === nameLower
+    );
+    return matched?.description || "";
+  };
 
   const handleExportPDF = async (shouldUpload: boolean) => {
     try {
@@ -224,8 +239,9 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
               <input
                 type="date"
                 value={validityDate}
+                onClick={(e) => e.currentTarget.showPicker?.()}
                 onChange={(e) => setValidityDate(e.target.value)}
-                className="w-full p-2 rounded-xl bg-slate-900 border border-white/10 text-white font-medium focus:outline-none focus:border-tenant"
+                className="w-full p-2 rounded-xl bg-slate-900 border border-white/10 text-white font-medium focus:outline-none focus:border-tenant cursor-pointer"
               />
             </div>
 
@@ -469,29 +485,37 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
                     <div className="w-full text-[8px]">
                       <div className="flex items-center bg-gray-100 text-left text-gray-600 font-bold border-b border-gray-300">
                         <div className="w-[4%] shrink-0 p-1.5">#</div>
-                        <div className="w-[14%] shrink-0 p-1.5">TAG / Patrimônio</div>
-                        <div className="w-[42%] shrink-0 p-1.5">Descrição</div>
+                        <div className="w-[24%] shrink-0 p-1.5">Equipamento</div>
+                        <div className="w-[32%] shrink-0 p-1.5">Descrição</div>
                         <div className="w-[12%] shrink-0 p-1.5">Faturamento</div>
                         <div className="w-[6%] shrink-0 p-1.5 text-center">Qtd</div>
                         <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">Vl. Unit.</div>
                         <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">Total</div>
                       </div>
-                      {proposal.equipment_items?.map((item, idx) => (
-                        <div key={idx} className="flex items-center border-b border-gray-200">
-                          <div className="w-[4%] shrink-0 p-1.5">{idx + 1}</div>
-                          <div className="w-[14%] shrink-0 p-1.5 font-bold text-gray-700">{item.equipment_code}</div>
-                          <div className="w-[42%] shrink-0 p-1.5">
-                            <span className="font-bold text-gray-900 block">{item.equipment_name.toUpperCase()}</span>
+                      {proposal.equipment_items?.map((item, idx) => {
+                        const itemDesc = getItemDescription(item);
+                        const eqName = (item?.equipment_name || "Equipamento").toUpperCase();
+                        const monthlyRateStr = (item?.monthly_rate || 0).toLocaleString("pt-BR");
+                        const totalAmountStr = (item?.total_amount || 0).toLocaleString("pt-BR");
+                        return (
+                          <div key={idx} className="flex items-center border-b border-gray-200">
+                            <div className="w-[4%] shrink-0 p-1.5">{idx + 1}</div>
+                            <div className="w-[24%] shrink-0 p-1.5 font-bold text-gray-900">
+                              {eqName}
+                            </div>
+                            <div className="w-[32%] shrink-0 p-1.5 font-semibold text-gray-700">
+                              {itemDesc ? itemDesc.toUpperCase() : "-"}
+                            </div>
+                            <div className="w-[12%] shrink-0 p-1.5 text-[8px] font-bold text-gray-600 uppercase">MENSAL</div>
+                            <div className="w-[6%] shrink-0 p-1.5 text-center font-semibold">{item?.qty || 1}</div>
+                            <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">R$ {monthlyRateStr}</div>
+                            <div className="w-[11%] shrink-0 p-1.5 text-right font-bold whitespace-nowrap">R$ {totalAmountStr}</div>
                           </div>
-                          <div className="w-[12%] shrink-0 p-1.5 text-[8px] font-bold text-gray-600 uppercase">MENSAL</div>
-                          <div className="w-[6%] shrink-0 p-1.5 text-center font-semibold">{item.qty}</div>
-                          <div className="w-[11%] shrink-0 p-1.5 text-right whitespace-nowrap">R$ {item.monthly_rate.toLocaleString("pt-BR")}</div>
-                          <div className="w-[11%] shrink-0 p-1.5 text-right font-bold whitespace-nowrap">R$ {item.total_amount.toLocaleString("pt-BR")}</div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       <div className="flex items-center bg-gray-50 font-bold border-t border-gray-300">
                         <div className="w-[89%] shrink-0 p-1.5 uppercase">TOTAL MENSAL DOS EQUIPAMENTOS</div>
-                        <div className="w-[11%] shrink-0 p-1.5 text-right text-emerald-800 font-black whitespace-nowrap">R$ {proposal.total_amount.toLocaleString("pt-BR")}</div>
+                        <div className="w-[11%] shrink-0 p-1.5 text-right text-emerald-800 font-black whitespace-nowrap">R$ {(proposal?.total_amount || 0).toLocaleString("pt-BR")}</div>
                       </div>
                     </div>
                   </div>

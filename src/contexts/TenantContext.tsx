@@ -32,10 +32,15 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     MockDataService.getOrganizations()
   );
   
-  const [overrideOrg, setOverrideOrg] = useState<Organization | null>(() => {
+  const [overrideOrgId, setOverrideOrgId] = useState<string | null>(() => {
     try {
       const saved = sessionStorage.getItem(OVERRIDE_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      if (saved.startsWith("{")) {
+        const parsed = JSON.parse(saved);
+        return parsed.id || null;
+      }
+      return saved;
     } catch {
       return null;
     }
@@ -47,17 +52,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setLoading(true);
     const orgs = await SupabaseDataService.getOrganizations();
     setAllOrganizations(orgs);
-    setOverrideOrg((prev) => {
-      if (!prev) return null;
-      const match = orgs.find((o) => o.id === prev.id);
-      if (match) {
-        try {
-          sessionStorage.setItem(OVERRIDE_STORAGE_KEY, JSON.stringify(match));
-        } catch (e) {}
-        return match;
-      }
-      return prev;
-    });
     setLoading(false);
   };
 
@@ -66,7 +60,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const isSuperAdmin = !!user?.is_super_admin;
-  const effectiveOverrideOrg = isSuperAdmin ? overrideOrg : null;
+  const effectiveOverrideOrgId = isSuperAdmin ? overrideOrgId : null;
+  const effectiveOverrideOrg = effectiveOverrideOrgId
+    ? allOrganizations.find((o) => o.id === effectiveOverrideOrgId) || null
+    : null;
 
   // Find organization strictly by user's organization_id
   const matchedUserOrg = user?.organization_id
@@ -102,14 +99,14 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [activeOrg]);
 
   const switchOrganization = (org: Organization) => {
-    setOverrideOrg(org);
+    setOverrideOrgId(org.id);
     try {
-      sessionStorage.setItem(OVERRIDE_STORAGE_KEY, JSON.stringify(org));
+      sessionStorage.setItem(OVERRIDE_STORAGE_KEY, org.id);
     } catch (e) {}
   };
 
   const clearOrganizationOverride = () => {
-    setOverrideOrg(null);
+    setOverrideOrgId(null);
     try {
       sessionStorage.removeItem(OVERRIDE_STORAGE_KEY);
     } catch (e) {}

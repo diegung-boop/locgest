@@ -100,7 +100,7 @@ export const ProposalsPage: React.FC = () => {
               <div className="text-right">
                 <div className="text-[10px] text-muted-foreground uppercase font-bold">Valor Total Geral</div>
                 <div className="text-xl font-black text-emerald-400">
-                  R$ {p.total_amount.toLocaleString("pt-BR")}
+                  R$ {(p.total_amount || 0).toLocaleString("pt-BR")}
                 </div>
               </div>
             </div>
@@ -111,7 +111,7 @@ export const ProposalsPage: React.FC = () => {
                 <MapPin className="w-4 h-4 text-tenant shrink-0" />
                 <div>
                   <div className="text-[10px] text-muted-foreground uppercase font-bold">Local da Obra</div>
-                  <div className="text-white font-medium truncate">{p.job_site_name} ({p.job_site_address})</div>
+                  <div className="text-white font-medium truncate">{p.job_site_name || "Obra Principal"} ({p.job_site_address || "Endereço da Obra"})</div>
                 </div>
               </div>
 
@@ -120,7 +120,7 @@ export const ProposalsPage: React.FC = () => {
                 <div>
                   <div className="text-[10px] text-muted-foreground uppercase font-bold">Período de Locação</div>
                   <div className="text-white font-medium">
-                    {p.start_date} até {p.end_date}
+                    {p.start_date || "Data Início"} até {p.end_date || "Data Fim"}
                   </div>
                 </div>
               </div>
@@ -138,12 +138,11 @@ export const ProposalsPage: React.FC = () => {
                 {p.equipment_items?.map((item, idx) => (
                   <div key={idx} className="py-1.5 flex justify-between items-center text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white">{item.qty}x</span>
-                      <span className="text-slate-200">{item.equipment_name}</span>
-                      <span className="text-[10px] text-muted-foreground">({item.equipment_code})</span>
+                      <span className="font-bold text-white">{item?.qty || 1}x</span>
+                      <span className="text-slate-200">{item?.equipment_name || "Equipamento Cotado"}</span>
                     </div>
                     <span className="font-extrabold text-emerald-400">
-                      R$ {item.total_amount.toLocaleString("pt-BR")}
+                      R$ {(item?.total_amount || 0).toLocaleString("pt-BR")}
                     </span>
                   </div>
                 ))}
@@ -164,7 +163,7 @@ export const ProposalsPage: React.FC = () => {
                   onClick={() => handleApproveProposal(p)}
                   className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all"
                 >
-                  <CheckCircle className="w-4 h-4" /> Aprovar Proposta Comercial & Gerar Contrato (R$ {p.total_amount.toLocaleString("pt-BR")})
+                  <CheckCircle className="w-4 h-4" /> Aprovar Proposta Comercial & Gerar Contrato (R$ {(p.total_amount || 0).toLocaleString("pt-BR")})
                 </button>
               )}
             </div>

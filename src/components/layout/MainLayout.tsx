@@ -46,9 +46,9 @@ export const MainLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
       <Navbar />
-      <div className="flex flex-1 relative">
+      <div className="flex flex-1 relative overflow-hidden">
         <Sidebar
           isSettingsOpen={isSettingsOpen}
           onToggleSettings={handleToggleSettings}
