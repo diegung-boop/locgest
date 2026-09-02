@@ -371,33 +371,20 @@ export const FormalProposalModal: React.FC<FormalProposalModalProps> = ({
 
                   {/* Header Info */}
                   <div className="relative z-10 flex justify-between items-center border-b-2 border-black pb-2.5 mb-4">
-                    {organization.letterhead_enabled !== false && organization.letterhead_header_url ? (
-                      <img
-                        src={organization.letterhead_header_url}
-                        crossOrigin="anonymous"
-                        alt="Cabeçalho"
-                        className="w-full object-contain"
-                        style={{ maxHeight: `${organization.letterhead_header_height ?? 80}px` }}
-                      />
-                    ) : (
-                      <>
-                        <div>
-                          {organization.logo_url ? (
-                            <img
-                              src={organization.logo_url}
-                              alt="Logo"
-                              className="max-w-[240px] object-contain"
-                              style={{ maxHeight: `${organization.letterhead_logo_height ?? 75}px` }}
-                            />
-                          ) : (
-                            <h1 className="text-base font-black tracking-tight text-tenant uppercase">{organization.name}</h1>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs font-black text-black">PROPOSTA DE LOCAÇÃO Nº {proposal.proposal_number.replace("PROP-2026-", "")}</div>
-                        </div>
-                      </>
-                    )}
+                    <div>
+                      {organization.logo_url ? (
+                        <img
+                          src={organization.logo_url}
+                          alt="Logo"
+                          className="max-w-[280px] max-h-[130px] object-contain"
+                        />
+                      ) : (
+                        <h1 className="text-base font-black tracking-tight text-tenant uppercase">{organization.name}</h1>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-black text-black">PROPOSTA DE LOCAÇÃO Nº {proposal.proposal_number.replace("PROP-2026-", "")}</div>
+                    </div>
                   </div>
 
                   {/* Prestadora e Tomador details columns */}

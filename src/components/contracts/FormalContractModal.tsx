@@ -602,37 +602,22 @@ export const FormalContractModal: React.FC<FormalContractModalProps> = ({
 
                 {/* Header (Hidden dynamically during print) */}
                 <div id="contract-html-header" className="relative z-10 flex justify-between items-center border-b-2 border-black pb-2.5 mb-6">
-                  {organization.letterhead_enabled !== false && organization.letterhead_header_url ? (
+                  <div>
+                    <div className="font-black text-sm tracking-tight text-neutral-800 uppercase">
+                      {organization.name}
+                    </div>
+                    <div className="text-[9px] text-neutral-500 italic mt-0.5">
+                      Plataforma de Gestão de Locações & Equipamentos
+                    </div>
+                  </div>
+                  {organization.logo_url && (
                     <img
-                      src={organization.letterhead_header_url}
+                      id="locadora-logo-img"
+                      src={organization.logo_url}
                       crossOrigin="anonymous"
-                      alt="Cabeçalho"
-                      className="w-full object-contain"
-                      style={{ maxHeight: `${organization.letterhead_header_height ?? 80}px` }}
+                      alt="Logo"
+                      className="max-w-[280px] max-h-[130px] object-contain"
                     />
-                  ) : (
-                    <>
-                      <div>
-                        <div className="font-black text-sm tracking-tight text-neutral-800 uppercase">
-                          {organization.name}
-                        </div>
-                        {organization.letterhead_header_text && (
-                          <div className="text-[9px] text-neutral-500 italic mt-0.5">
-                            {organization.letterhead_header_text}
-                          </div>
-                        )}
-                      </div>
-                      {organization.logo_url && (
-                        <img
-                          id="locadora-logo-img"
-                          src={organization.logo_url}
-                          crossOrigin="anonymous"
-                          alt="Logo"
-                          className="max-w-[240px] object-contain"
-                          style={{ maxHeight: `${organization.letterhead_logo_height ?? 75}px` }}
-                        />
-                      )}
-                    </>
                   )}
                 </div>
 

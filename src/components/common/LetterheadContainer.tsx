@@ -58,34 +58,22 @@ export const LetterheadContainer: React.FC<LetterheadContainerProps> = ({
 
       {/* Header Layer */}
       <div id="contract-html-header" className="relative z-10 border-b border-neutral-300 pb-3 mb-6">
-        {headerUrl ? (
-          <img
-            src={headerUrl}
-            alt="Cabeçalho"
-            className="w-full object-contain"
-            style={{ maxHeight: `${organization?.letterhead_header_height ?? 80}px` }}
-          />
-        ) : (
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-bold text-sm uppercase tracking-wider text-neutral-900">
-                {organization?.name || "LOCADORA"}
-              </h1>
-              {headerText && (
-                <p className="text-[9px] text-neutral-500 italic mt-0.5">{headerText}</p>
-              )}
-            </div>
-            {organization?.logo_url && (
-              <img
-                id="locadora-logo-img"
-                src={organization.logo_url}
-                alt="Logo"
-                className="object-contain"
-                style={{ maxHeight: `${organization?.letterhead_logo_height ?? 75}px` }}
-              />
-            )}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-bold text-sm uppercase tracking-wider text-neutral-900">
+              {organization?.name || "LOCADORA"}
+            </h1>
+            <p className="text-[9px] text-neutral-500 italic mt-0.5">Plataforma de Gestão de Locações & Equipamentos</p>
           </div>
-        )}
+          {organization?.logo_url && (
+            <img
+              id="locadora-logo-img"
+              src={organization.logo_url}
+              alt="Logo"
+              className="object-contain max-h-[130px] max-w-[280px]"
+            />
+          )}
+        </div>
       </div>
 
       {/* Document Content Slot */}

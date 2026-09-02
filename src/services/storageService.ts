@@ -70,14 +70,22 @@ export class StorageService {
 
       if (uploadError) {
         console.warn(`Supabase Storage upload file warning (${bucket}):`, uploadError.message);
-        throw uploadError;
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
       }
 
       const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
       return data.publicUrl;
     } catch (err) {
       console.error("Error in StorageService.uploadFile:", err);
-      throw err;
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
     }
   }
 }

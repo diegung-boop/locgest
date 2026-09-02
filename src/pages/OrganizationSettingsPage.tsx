@@ -8,11 +8,11 @@ import {
   Upload, 
   Sparkles, 
   Loader2, 
-  FileText, 
   Eye, 
   Image as ImageIcon,
   Sliders,
-  Save
+  Save,
+  Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,10 +21,9 @@ export const OrganizationSettingsPage: React.FC = () => {
 
   const [formData, setFormData] = useState<Organization>({ ...organization });
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingHeader, setIsUploadingHeader] = useState(false);
-  const [isUploadingFooter, setIsUploadingFooter] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingWatermark, setIsUploadingWatermark] = useState(false);
-  const [activeTab, setActiveTab] = useState<"general" | "letterhead">("letterhead");
+  const [activeTab, setActiveTab] = useState<"letterhead" | "general">("letterhead");
 
   useEffect(() => {
     setFormData({ ...organization });
@@ -36,17 +35,17 @@ export const OrganizationSettingsPage: React.FC = () => {
 
   const handleFileUpload = async (
     file: File,
-    targetField: "logo_url" | "letterhead_header_url" | "letterhead_footer_url" | "letterhead_watermark_url",
+    targetField: "logo_url" | "letterhead_watermark_url",
     setLoadingState: (v: boolean) => void
   ) => {
     try {
       setLoadingState(true);
-      const url = await StorageService.uploadFile(file, "organization-assets", organization.id);
+      const url = await StorageService.uploadImage(file, "equipment-images", organization.id);
       handleChange(targetField, url);
-      toast.success("Imagem enviada com sucesso!");
+      toast.success("Imagem atualizada com sucesso!");
     } catch (err) {
       console.error("Upload error:", err);
-      toast.error("Erro ao enviar imagem. Tente novamente.");
+      toast.error("Erro ao processar imagem.");
     } finally {
       setLoadingState(false);
     }
@@ -58,10 +57,10 @@ export const OrganizationSettingsPage: React.FC = () => {
       setIsSaving(true);
       await SupabaseDataService.saveOrganization(formData);
       await refreshOrganization();
-      toast.success("Configurações da empresa e Papel Timbrado salvos com sucesso!");
+      toast.success("Configurações salvas com sucesso!");
     } catch (err) {
       console.error("Save org error:", err);
-      toast.error("Erro ao salvar configurações da empresa.");
+      toast.error("Erro ao salvar configurações.");
     } finally {
       setIsSaving(false);
     }
@@ -81,10 +80,10 @@ export const OrganizationSettingsPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl glass-card border border-white/10">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Building2 className="w-6 h-6 text-tenant" /> Identidade Visual & Papel Timbrado
+            <Building2 className="w-6 h-6 text-tenant" /> Logotipo & Marca-d'Água dos Documentos
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Personalize o papel timbrado (cabeçalho, rodapé e marca-d'água) da sua empresa para utilização automática em PDFs de Contratos e Propostas.
+            Configure a marca-d'água de fundo e a logo oficial da sua empresa para utilização nos documentos e PDFs.
           </p>
         </div>
 
@@ -99,7 +98,7 @@ export const OrganizationSettingsPage: React.FC = () => {
                 : "text-muted-foreground hover:text-white"
             }`}
           >
-            <Sparkles className="w-4 h-4" /> Papel Timbrado Multi-Tenant
+            <Sparkles className="w-4 h-4" /> Logo & Marca-d'Água
           </button>
           <button
             type="button"
@@ -120,7 +119,7 @@ export const OrganizationSettingsPage: React.FC = () => {
         <div className="lg:col-span-7 space-y-6">
           {activeTab === "letterhead" && (
             <div className="space-y-6">
-              {/* Active Toggle Card */}
+              {/* Toggle Card */}
               <div className="p-5 rounded-2xl glass-card border border-white/10 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -128,9 +127,9 @@ export const OrganizationSettingsPage: React.FC = () => {
                       <Sparkles className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-white">Papel Timbrado nos Documentos</h3>
+                      <h3 className="text-sm font-bold text-white">Marca-d'Água e Identidade nos Documentos</h3>
                       <p className="text-xs text-muted-foreground">
-                        Aplica marca-d'água, cabeçalho e rodapé personalizados nas folhas A4 impressas e exportadas.
+                        Exibe a marca-d'água no fundo das folhas A4 impressas e exportadas.
                       </p>
                     </div>
                   </div>
@@ -146,6 +145,77 @@ export const OrganizationSettingsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Company Logo Section */}
+              <div className="p-6 rounded-2xl glass-card border border-white/10 space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-tenant" />
+                    <h3 className="text-sm font-bold text-white">Logotipo Oficial da Empresa</h3>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-md">
+                    Tamanho Padrão nos Documentos: 130px
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    {formData.logo_url ? (
+                      <div className="relative p-2 bg-slate-900 border border-white/10 rounded-xl flex items-center justify-center min-w-[120px] h-[75px]">
+                        <img
+                          src={formData.logo_url}
+                          alt="Logo da Empresa"
+                          className="max-h-[60px] max-w-[110px] object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-slate-950 border border-dashed border-white/10 rounded-xl text-center text-xs text-muted-foreground min-w-[120px] h-[75px] flex items-center justify-center">
+                        Nenhuma logo
+                      </div>
+                    )}
+
+                    <div className="flex-1 space-y-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file, "logo_url", setIsUploadingLogo);
+                        }}
+                        className="hidden"
+                        id="upload-logo-input"
+                      />
+                      <div className="flex items-center gap-3">
+                        <label
+                          htmlFor="upload-logo-input"
+                          className="py-2.5 px-4 rounded-xl border border-dashed border-white/20 hover:border-tenant hover:bg-tenant/5 text-xs text-white font-medium flex items-center gap-2 cursor-pointer transition-all"
+                        >
+                          {isUploadingLogo ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-tenant" />
+                          ) : (
+                            <Upload className="w-4 h-4 text-tenant" />
+                          )}
+                          <span>{formData.logo_url ? "Substituir Logo" : "Upload da Logo (PNG/JPEG)"}</span>
+                        </label>
+
+                        {formData.logo_url && (
+                          <button
+                            type="button"
+                            onClick={() => handleChange("logo_url", null)}
+                            className="p-2.5 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 text-xs flex items-center gap-1.5 transition-all"
+                            title="Remover Logo"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Remover
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        A logo será exibida no cabeçalho com altura fixada em 130px.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Watermark Section */}
               <div className="p-6 rounded-2xl glass-card border border-white/10 space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -154,218 +224,70 @@ export const OrganizationSettingsPage: React.FC = () => {
                     <h3 className="text-sm font-bold text-white">Marca-d'Água de Fundo</h3>
                   </div>
                   <span className="text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-md">
-                    Exibida no centro da folha A4
+                    Exibida no centro do papel A4
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
-                      Imagem da Marca-d'Água (PNG Transparente Recomendado)
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload(file, "letterhead_watermark_url", setIsUploadingWatermark);
-                      }}
-                      className="hidden"
-                      id="upload-watermark-input"
-                    />
-                    <label
-                      htmlFor="upload-watermark-input"
-                      className="w-full py-3 px-4 rounded-xl border border-dashed border-white/20 hover:border-tenant hover:bg-tenant/5 text-xs text-white font-medium flex items-center justify-center gap-2 cursor-pointer transition-all"
-                    >
-                      {isUploadingWatermark ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-tenant" />
-                      ) : (
-                        <Upload className="w-4 h-4 text-tenant" />
-                      )}
-                      <span>{formData.letterhead_watermark_url ? "Substituir Marca-d'Água" : "Fazer Upload de Marca-d'Água"}</span>
-                    </label>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                        <Sliders className="w-3.5 h-3.5 text-tenant" /> Opacidade no Fundo
-                      </label>
-                      <span className="text-xs font-extrabold text-tenant">
-                        {Math.round((formData.letterhead_watermark_opacity ?? 0.10) * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.02"
-                      max="0.30"
-                      step="0.01"
-                      value={formData.letterhead_watermark_opacity ?? 0.10}
-                      onChange={(e) => handleChange("letterhead_watermark_opacity", parseFloat(e.target.value))}
-                      className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-tenant"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Header Configuration */}
-              <div className="p-6 rounded-2xl glass-card border border-white/10 space-y-4">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-tenant" />
-                    <h3 className="text-sm font-bold text-white">Cabeçalho do Papel Timbrado</h3>
-                  </div>
-                </div>
-
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
-                      Imagem de Banner de Cabeçalho (Opcional - substitui a barra padrão)
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload(file, "letterhead_header_url", setIsUploadingHeader);
-                      }}
-                      className="hidden"
-                      id="upload-header-input"
-                    />
-                    <div className="flex items-center gap-3">
-                      <label
-                        htmlFor="upload-header-input"
-                        className="py-2.5 px-4 rounded-xl border border-dashed border-white/20 hover:border-tenant hover:bg-tenant/5 text-xs text-white font-medium flex items-center gap-2 cursor-pointer transition-all"
-                      >
-                        {isUploadingHeader ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 text-tenant" />}
-                        <span>{formData.letterhead_header_url ? "Alterar Imagem" : "Upload Banner Cabeçalho"}</span>
-                      </label>
-                      {formData.letterhead_header_url && (
-                        <button
-                          type="button"
-                          onClick={() => handleChange("letterhead_header_url", null)}
-                          className="text-xs text-red-400 hover:underline"
-                        >
-                          Remover
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Subtítulo ou Slogan do Cabeçalho
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.letterhead_header_text || ""}
-                      onChange={(e) => handleChange("letterhead_header_text", e.target.value)}
-                      placeholder="Ex: Gestão de Locações & Soluções em Equipamentos Móveis"
-                      className="w-full p-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-xs focus:outline-none focus:border-tenant"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-white/10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                     <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                          <Sliders className="w-3.5 h-3.5 text-tenant" /> Tamanho do Logotipo (Altura)
-                        </label>
-                        <span className="text-xs font-extrabold text-tenant">
-                          {formData.letterhead_logo_height ?? 75}px
-                        </span>
-                      </div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                        Imagem da Marca-d'Água (PNG Transparente Recomendado)
+                      </label>
                       <input
-                        type="range"
-                        min="30"
-                        max="150"
-                        step="5"
-                        value={formData.letterhead_logo_height ?? 75}
-                        onChange={(e) => handleChange("letterhead_logo_height", parseInt(e.target.value, 10))}
-                        className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-tenant"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file, "letterhead_watermark_url", setIsUploadingWatermark);
+                        }}
+                        className="hidden"
+                        id="upload-watermark-input"
                       />
+                      <div className="flex items-center gap-2">
+                        <label
+                          htmlFor="upload-watermark-input"
+                          className="w-full py-3 px-4 rounded-xl border border-dashed border-white/20 hover:border-tenant hover:bg-tenant/5 text-xs text-white font-medium flex items-center justify-center gap-2 cursor-pointer transition-all"
+                        >
+                          {isUploadingWatermark ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-tenant" />
+                          ) : (
+                            <Upload className="w-4 h-4 text-tenant" />
+                          )}
+                          <span>{formData.letterhead_watermark_url ? "Substituir Marca-d'Água" : "Fazer Upload de Marca-d'Água (PNG)"}</span>
+                        </label>
+
+                        {formData.letterhead_watermark_url && (
+                          <button
+                            type="button"
+                            onClick={() => handleChange("letterhead_watermark_url", null)}
+                            className="p-3 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 text-xs transition-all shrink-0"
+                            title="Remover Marca-d'Água"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                          <Sliders className="w-3.5 h-3.5 text-tenant" /> Altura do Banner de Cabeçalho
+                          <Sliders className="w-3.5 h-3.5 text-tenant" /> Transparência / Opacidade
                         </label>
                         <span className="text-xs font-extrabold text-tenant">
-                          {formData.letterhead_header_height ?? 80}px
+                          {Math.round((formData.letterhead_watermark_opacity ?? 0.10) * 100)}%
                         </span>
                       </div>
                       <input
                         type="range"
-                        min="40"
-                        max="180"
-                        step="5"
-                        value={formData.letterhead_header_height ?? 80}
-                        onChange={(e) => handleChange("letterhead_header_height", parseInt(e.target.value, 10))}
+                        min="0.02"
+                        max="0.30"
+                        step="0.01"
+                        value={formData.letterhead_watermark_opacity ?? 0.10}
+                        onChange={(e) => handleChange("letterhead_watermark_opacity", parseFloat(e.target.value))}
                         className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-tenant"
                       />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer Configuration */}
-              <div className="p-6 rounded-2xl glass-card border border-white/10 space-y-4">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-tenant" />
-                    <h3 className="text-sm font-bold text-white">Rodapé do Papel Timbrado</h3>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                      Texto Personalizado do Rodapé A4
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={formData.letterhead_footer_text || ""}
-                      onChange={(e) => handleChange("letterhead_footer_text", e.target.value)}
-                      placeholder="Ex: RAZÃO SOCIAL DA EMPRESA LTDA — CNPJ 00.000.000/0001-00 — ENDEREÇO COMPLETO — FONE: (85) 3000-0000 — contato@empresa.com"
-                      className="w-full p-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-xs focus:outline-none focus:border-tenant leading-relaxed"
-                    />
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Se deixado em branco, o sistema formatará automaticamente o endereço, telefone e e-mail cadastrados da empresa.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
-                      Imagem/Banner de Rodapé A4 (Opcional)
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload(file, "letterhead_footer_url", setIsUploadingFooter);
-                      }}
-                      className="hidden"
-                      id="upload-footer-input"
-                    />
-                    <div className="flex items-center gap-3">
-                      <label
-                        htmlFor="upload-footer-input"
-                        className="py-2.5 px-4 rounded-xl border border-dashed border-white/20 hover:border-tenant hover:bg-tenant/5 text-xs text-white font-medium flex items-center gap-2 cursor-pointer transition-all"
-                      >
-                        {isUploadingFooter ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 text-tenant" />}
-                        <span>{formData.letterhead_footer_url ? "Alterar Rodapé" : "Upload Banner Rodapé"}</span>
-                      </label>
-                      {formData.letterhead_footer_url && (
-                        <button
-                          type="button"
-                          onClick={() => handleChange("letterhead_footer_url", null)}
-                          className="text-xs text-red-400 hover:underline"
-                        >
-                          Remover
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -444,24 +366,6 @@ export const OrganizationSettingsPage: React.FC = () => {
                   />
                 </div>
               </div>
-
-              <div className="pt-2">
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Cor Primária do Sistema</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={formData.primary_color || "#0284c7"}
-                    onChange={(e) => handleChange("primary_color", e.target.value)}
-                    className="w-10 h-10 rounded-xl bg-slate-900 border border-white/10 cursor-pointer p-1"
-                  />
-                  <input
-                    type="text"
-                    value={formData.primary_color || "#0284c7"}
-                    onChange={(e) => handleChange("primary_color", e.target.value)}
-                    className="w-32 p-2 rounded-xl bg-slate-900 border border-white/10 text-white text-xs font-mono"
-                  />
-                </div>
-              </div>
             </div>
           )}
 
@@ -473,7 +377,7 @@ export const OrganizationSettingsPage: React.FC = () => {
               className="px-6 py-3 rounded-xl bg-tenant text-white font-bold text-xs shadow-lg shadow-tenant/20 hover:opacity-90 transition-all flex items-center gap-2"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              <span>Salvar Configurações da Empresa</span>
+              <span>Salvar Alterações</span>
             </button>
           </div>
         </div>
@@ -492,7 +396,7 @@ export const OrganizationSettingsPage: React.FC = () => {
           {/* A4 Paper Container */}
           <div className="bg-white text-black rounded-lg shadow-2xl p-6 min-h-[580px] flex flex-col justify-between relative overflow-hidden text-[9px] font-serif border border-neutral-300">
             {/* Background Watermark */}
-            {formData.letterhead_watermark_url && (
+            {formData.letterhead_enabled !== false && formData.letterhead_watermark_url && (
               <div 
                 className="absolute inset-0 flex items-center justify-center pointer-events-none p-12"
                 style={{ opacity: formData.letterhead_watermark_opacity ?? 0.10 }}
@@ -507,33 +411,23 @@ export const OrganizationSettingsPage: React.FC = () => {
 
             {/* Header Area */}
             <div className="relative z-10 space-y-2 border-b border-neutral-300 pb-3">
-              {formData.letterhead_header_url ? (
-                <img
-                  src={formData.letterhead_header_url}
-                  alt="Cabeçalho"
-                  className="w-full object-contain"
-                  style={{ maxHeight: `${(formData.letterhead_header_height ?? 80) * 0.7}px` }}
-                />
-              ) : (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="font-bold text-xs uppercase tracking-wider text-neutral-800">
-                      {formData.name || "SUA EMPRESA LTDA"}
-                    </h2>
-                    <p className="text-[8px] text-neutral-500 italic">
-                      {formData.letterhead_header_text || "Plataforma de Gestão de Locações & Equipamentos"}
-                    </p>
-                  </div>
-                  {formData.logo_url && (
-                    <img
-                      src={formData.logo_url}
-                      alt="Logo"
-                      className="object-contain"
-                      style={{ maxHeight: `${(formData.letterhead_logo_height ?? 75) * 0.5}px` }}
-                    />
-                  )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-bold text-xs uppercase tracking-wider text-neutral-800">
+                    {formData.name || "SUA EMPRESA LTDA"}
+                  </h2>
+                  <p className="text-[8px] text-neutral-500 italic">
+                    Plataforma de Gestão de Locações & Equipamentos
+                  </p>
                 </div>
-              )}
+                {formData.logo_url && (
+                  <img
+                    src={formData.logo_url}
+                    alt="Logo"
+                    className="object-contain max-h-[65px] max-w-[160px]"
+                  />
+                )}
+              </div>
             </div>
 
             {/* Document Body Sample Mock */}
@@ -563,15 +457,10 @@ export const OrganizationSettingsPage: React.FC = () => {
 
             {/* Footer Area */}
             <div className="relative z-10 border-t border-neutral-300 pt-2 text-center text-[7.5px] text-neutral-500 font-bold uppercase tracking-wider">
-              {formData.letterhead_footer_url ? (
-                <img src={formData.letterhead_footer_url} alt="Rodapé" className="w-full max-h-12 object-contain" />
-              ) : (
-                <p>
-                  {formData.letterhead_footer_text ||
-                    formatAddressLine(formData).toUpperCase() ||
-                    "ENDEREÇO DA EMPRESA — TELEFONE — E-MAIL"}
-                </p>
-              )}
+              <p>
+                {formatAddressLine(formData).toUpperCase() ||
+                  "ENDEREÇO DA EMPRESA — TELEFONE — E-MAIL"}
+              </p>
             </div>
           </div>
         </div>
