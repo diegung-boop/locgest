@@ -44,11 +44,19 @@ export const PricingTierModal: React.FC<PricingTierModalProps> = ({
 
   const loadRules = async () => {
     setLoading(true);
-    const tierRules = await SupabaseDataService.getPricingTierRules(organization.id, catalogItem.id);
-    // Sort rules by min_months ascending
-    tierRules.sort((a, b) => a.min_months - b.min_months);
-    setRules(tierRules);
-    setLoading(false);
+    try {
+      const tierRules = await SupabaseDataService.getPricingTierRules(organization.id, catalogItem.id);
+      // Sort rules by min_months ascending
+      tierRules.sort((a, b) => a.min_months - b.min_months);
+      setRules(tierRules);
+    } catch (err) {
+      console.error("Failed to load pricing tier rules:", err);
+      setRules([]);
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error(`Erro ao carregar faixas de prazo: ${message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -92,12 +100,39 @@ export const PricingTierModal: React.FC<PricingTierModalProps> = ({
 
   const handleSaveRule = async () => {
     try {
+      const minMonths = Number(formState.min_months) || 1;
+      const maxMonths = formState.is_unlimited
+        ? null
+        : Number(formState.max_months) || minMonths;
+
+      if (maxMonths !== null && maxMonths < minMonths) {
+        toast.error("O prazo máximo não pode ser menor que o prazo mínimo.");
+        return;
+      }
+
+      const overlappingRule = rules.find((rule) => {
+        if (rule.id === formState.id) return false;
+        const existingMax = rule.max_months ?? Number.POSITIVE_INFINITY;
+        const candidateMax = maxMonths ?? Number.POSITIVE_INFINITY;
+        return minMonths <= existingMax && rule.min_months <= candidateMax;
+      });
+
+      if (overlappingRule) {
+        const existingLabel = overlappingRule.max_months === null
+          ? `${overlappingRule.min_months}+ meses`
+          : overlappingRule.min_months === overlappingRule.max_months
+          ? `${overlappingRule.min_months} mês(es)`
+          : `${overlappingRule.min_months} a ${overlappingRule.max_months} meses`;
+        toast.error(`Esta faixa se sobrepõe à faixa existente de ${existingLabel}.`);
+        return;
+      }
+
       const newRule: PricingTierRule = {
         id: formState.id || crypto.randomUUID(),
         organization_id: organization.id,
         catalog_id: catalogItem.id,
-        min_months: Number(formState.min_months) || 1,
-        max_months: formState.is_unlimited ? null : Number(formState.max_months) || Number(formState.min_months),
+        min_months: minMonths,
+        max_months: maxMonths,
         monthly_rate: parseCurrencyToNumber(formState.monthly_rate_str),
         freight_delivery: parseCurrencyToNumber(formState.freight_delivery_str),
         freight_retrieval: parseCurrencyToNumber(formState.freight_retrieval_str),
@@ -112,7 +147,8 @@ export const PricingTierModal: React.FC<PricingTierModalProps> = ({
       await loadRules();
       onSaveSuccess();
     } catch (err) {
-      toast.error("Erro ao salvar regra de prazo.");
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error(`Erro ao salvar regra de prazo: ${message}`);
     }
   };
 
@@ -123,7 +159,8 @@ export const PricingTierModal: React.FC<PricingTierModalProps> = ({
       await loadRules();
       onSaveSuccess();
     } catch (err) {
-      toast.error("Erro ao remover regra de prazo.");
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error(`Erro ao remover regra de prazo: ${message}`);
     }
   };
 

@@ -755,45 +755,54 @@ export class SupabaseDataService {
         query = query.eq("catalog_id", catalogId);
       }
       const { data, error } = await query;
-      const mockRules = MockDataService.getPricingTierRules(orgId, catalogId);
       if (error) {
-        console.warn("Supabase getPricingTierRules notice, using mock/local rules:", error.message);
-        return mockRules;
+        console.error("Supabase getPricingTierRules failed:", error);
+        throw error;
       }
-      if (!data || data.length === 0) {
-        return mockRules;
-      }
-      return data as PricingTierRule[];
+      return (data || []) as PricingTierRule[];
     } catch (e) {
-      console.warn("Supabase getPricingTierRules failed, using mock rules:", e);
-      return MockDataService.getPricingTierRules(orgId, catalogId);
+      console.error("Supabase getPricingTierRules failed:", e);
+      throw e;
     }
   }
 
   static async savePricingTierRule(rule: PricingTierRule): Promise<void> {
-    MockDataService.savePricingTierRule(rule);
     try {
-      let { error } = await supabase.from("pricing_tier_rules").upsert(rule);
-      if (error) {
-        const adminRes = await supabaseAdmin.from("pricing_tier_rules").upsert(rule);
-        if (adminRes.error) {
-          console.warn("Supabase savePricingTierRule admin notice:", adminRes.error.message);
-        }
-      }
+      const { data: existing, error: lookupError } = await supabase
+        .from("pricing_tier_rules")
+        .select("id")
+        .eq("id", rule.id)
+        .maybeSingle();
+
+      if (lookupError) throw lookupError;
+
+      const { data: savedRule, error } = existing
+        ? await supabase.from("pricing_tier_rules").update(rule).eq("id", rule.id).select("id").single()
+        : await supabase.from("pricing_tier_rules").insert(rule).select("id").single();
+
+      if (error) throw error;
+      if (!savedRule) throw new Error("O Supabase não confirmou o salvamento da faixa.");
+      MockDataService.savePricingTierRule(rule);
     } catch (e) {
-      console.warn("Supabase savePricingTierRule warning:", e);
+      console.error("Supabase savePricingTierRule failed:", e);
+      throw e;
     }
   }
 
   static async deletePricingTierRule(id: string): Promise<void> {
-    MockDataService.deletePricingTierRule(id);
     try {
-      let { error } = await supabase.from("pricing_tier_rules").delete().eq("id", id);
-      if (error) {
-        await supabaseAdmin.from("pricing_tier_rules").delete().eq("id", id);
-      }
+      const { data: deletedRule, error } = await supabase
+        .from("pricing_tier_rules")
+        .delete()
+        .eq("id", id)
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (!deletedRule) throw new Error("O Supabase não confirmou a exclusão da faixa.");
+      MockDataService.deletePricingTierRule(id);
     } catch (e) {
-      console.warn("Supabase deletePricingTierRule warning:", e);
+      console.error("Supabase deletePricingTierRule failed:", e);
+      throw e;
     }
   }
 }

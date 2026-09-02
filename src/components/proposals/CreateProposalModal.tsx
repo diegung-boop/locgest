@@ -157,10 +157,13 @@ export const CreateProposalModal: React.FC<CreateProposalModalProps> = ({
 
       if (hasMaintenanceOverlap) return false;
 
-      // 4. Fallback: if asset status is physically Rented, Reserved, or Maintenance today
+      // 4. Fallback for the asset's physical status today. A current status
+      // must not block every future date indefinitely; dated proposals,
+      // contracts and maintenances above are the source of truth for future
+      // periods. It only blocks a requested interval that includes today.
       if (eq.status === "Rented" || eq.status === "Reserved" || eq.status === "Maintenance") {
-        const todayStr = new Date().toISOString().split("T")[0];
-        if (isOverlapping(todayStr, null)) {
+        const today = parseDateOnly(new Date().toISOString().split("T")[0]);
+        if (today && reqStart <= today && reqEnd >= today) {
           return false;
         }
       }
