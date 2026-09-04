@@ -16,6 +16,7 @@ export const MainLayout: React.FC = () => {
   // If navigating to a settings route, open settings submenu.
   useEffect(() => {
     if (
+      location.pathname.startsWith("/organization") ||
       location.pathname.startsWith("/users") ||
       location.pathname.startsWith("/pricing") ||
       location.pathname.startsWith("/superadmin")

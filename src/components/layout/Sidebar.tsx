@@ -25,6 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isSettingsOpen, onToggleSettin
   const navigate = useNavigate();
 
   const isSettingsActive =
+    location.pathname.startsWith("/organization") ||
     location.pathname.startsWith("/users") ||
     location.pathname.startsWith("/pricing") ||
     location.pathname.startsWith("/superadmin") ||
@@ -43,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isSettingsOpen, onToggleSettin
 
   const handleConfiguracoesClick = () => {
     if (
+      !location.pathname.startsWith("/organization") &&
       !location.pathname.startsWith("/users") &&
       !location.pathname.startsWith("/pricing") &&
       !location.pathname.startsWith("/superadmin")
