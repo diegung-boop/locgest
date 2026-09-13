@@ -229,7 +229,7 @@ export type FinancialRecordStatus = "Pending" | "Paid" | "Overdue" | "Cancelled"
 export interface FinancialRecord {
   id: string;
   organization_id: string;
-  contract_id: string;
+  contract_id?: string | null;
   client_id: string;
   contract?: Contract;
   client?: Client;
@@ -242,6 +242,22 @@ export interface FinancialRecord {
   payment_proof_url?: string | null;
   paid_at?: string | null;
   pdf_url?: string | null;
+
+  // Campos de Boleto e Banco Inter
+  bank_provider?: "banco_inter" | "manual";
+  inter_nosso_numero?: string | null;
+  inter_codigo_solicitacao?: string | null;
+  linha_digitavel?: string | null;
+  codigo_barras?: string | null;
+  pix_copia_cola?: string | null;
+  pix_qr_code_url?: string | null;
+  installment_number?: number;
+  total_installments?: number;
+
+  // Pagador avulso (caso não tenha cliente pré-cadastrado)
+  payer_name?: string | null;
+  payer_document?: string | null;
+
   created_at: string;
   updated_at: string;
 }
@@ -277,3 +293,38 @@ export interface ServiceOrder {
   created_at: string;
   updated_at: string;
 }
+
+export interface TenantBankIntegration {
+  id: string;
+  organization_id: string;
+  bank_provider: "banco_inter";
+  environment: "sandbox" | "production";
+  client_id: string;
+  client_secret: string;
+  account_number?: string | null;
+  certificate_crt_content?: string | null;
+  certificate_key_content?: string | null;
+  certificate_crt_filename?: string | null;
+  certificate_key_filename?: string | null;
+  pix_key?: string | null;
+  webhook_url?: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface BankConnectivityResult {
+  service: string;
+  environment: "sandbox" | "production";
+  reachable: boolean;
+  httpStatus: number | null;
+  stage: "connected" | "authentication_pending" | "dns_failed" | "network_failed" | "tls_error" | "timeout";
+  mtlsConfigured: boolean;
+  credentialsConfigured: boolean;
+  message: string;
+  responseTimeMs: number;
+  timestamp: string;
+  endpointTested: string;
+}
+
+

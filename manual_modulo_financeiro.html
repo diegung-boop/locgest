@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Locgest - Manual do Módulo Financeiro e Boletos Banco Inter</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 14mm 18mm 14mm;
+      @bottom-right {
+        content: counter(page) " de " counter(pages);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 8pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #0f172a;
+      background-color: #ffffff;
+      line-height: 1.55;
+      font-size: 9.8pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Cover / Header */
+    .header-container {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 20px;
+      margin-bottom: 26px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .brand-title {
+      font-size: 22pt;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      background: #0284c7;
+      color: #ffffff;
+      font-size: 8.5pt;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .subtitle {
+      font-size: 11pt;
+      color: #475569;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .meta-box {
+      text-align: right;
+      font-size: 8.5pt;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    .meta-box strong {
+      color: #0f172a;
+    }
+
+    /* Sections */
+    h2 {
+      font-size: 13.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1.5px solid #0284c7;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h3 {
+      font-size: 10.8pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+
+    p {
+      margin-bottom: 10px;
+      color: #334155;
+      text-align: justify;
+    }
+
+    /* Grids & Cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .card-title {
+      font-weight: 700;
+      font-size: 9.8pt;
+      color: #0f172a;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-desc {
+      font-size: 8.8pt;
+      color: #475569;
+      line-height: 1.45;
+    }
+
+    /* Workflow Box */
+    .workflow {
+      background: linear-gradient(to right, #f0fdf4, #f8fafc);
+      border-left: 4px solid #16a34a;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 16px 0;
+    }
+
+    .workflow-title {
+      font-weight: 700;
+      color: #15803d;
+      font-size: 10pt;
+      margin-bottom: 6px;
+    }
+
+    .workflow-steps {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .step-node {
+      flex: 1;
+      background: #ffffff;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 8pt;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .step-number {
+      font-weight: 800;
+      color: #16a34a;
+      font-size: 9pt;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 8.8pt;
+    }
+
+    th {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-weight: 600;
+      text-align: left;
+      padding: 8px 10px;
+    }
+
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    .badge-status {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 7.8pt;
+      font-weight: 700;
+    }
+
+    .badge-paid { background: #dcfce7; color: #15803d; }
+    .badge-pending { background: #fef3c7; color: #b45309; }
+    .badge-overdue { background: #fee2e2; color: #b91c1c; }
+
+    /* Highlights & Tips */
+    .callout-info {
+      background: #f0f9ff;
+      border-left: 4px solid #0284c7;
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin: 12px 0;
+      font-size: 8.8pt;
+      color: #0369a1;
+    }
+
+    .callout-alert {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin: 12px 0;
+      font-size: 8.8pt;
+      color: #92400e;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .code-pill {
+      font-family: monospace;
+      background: #e2e8f0;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 8pt;
+      color: #0f172a;
+    }
+
+    ul, ol {
+      margin-left: 18px;
+      margin-bottom: 10px;
+      font-size: 9.2pt;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header-container">
+    <div>
+      <div class="brand-title">
+        LOCGEST <span class="brand-badge">Documentação Técnica & Operacional</span>
+      </div>
+      <div class="subtitle">Guia Completo: Módulo Financeiro e Emissão de Boletos (Banco Inter)</div>
+    </div>
+    <div class="meta-box">
+      <strong>Sistema:</strong> Locgest v0.1.0<br/>
+      <strong>Data de Emissão:</strong> 11/09/2026<br/>
+      <strong>Ambiente:</strong> Produção / Homologação
+    </div>
+  </div>
+
+  <!-- SEÇÃO 1: VISÃO GERAL -->
+  <h2>1. Visão Geral do Módulo Financeiro</h2>
+  <p>
+    O <strong>Módulo Financeiro do Locgest</strong> é o centro de controle e liquidação de todas as receitas provenientes do ciclo de locação de contêineres e equipamentos modulares. Ele unifica em uma interface consolidada:
+  </p>
+  <ul>
+    <li><strong>Agrupamento Inteligente por Contrato:</strong> visualização hierárquica onde cada contrato agrega suas parcelas e faturamentos.</li>
+    <li><strong>Cobranças Avulsas:</strong> faturamento sob demanda (ex: taxa de manutenção, serviços extras, reparos ou fretes adicionais).</li>
+    <li><strong>Métricas Financeiras em Tempo Real:</strong> cálculo dinâmico de <em>Receita Total</em>, <em>Total Recebido</em>, <em>Total Pendente</em> e <em>Valores em Atraso</em>.</li>
+    <li><strong>Gatilho Automático de Logística (OS):</strong> ao confirmar o pagamento de uma locação, o sistema gera automaticamente a <strong>Ordem de Serviço (OS)</strong> de entrega para a equipe de logística.</li>
+  </ul>
+
+  <!-- WORKFLOW VISUAL -->
+  <div class="workflow">
+    <div class="workflow-title">Fluxo Operacional de Receita & Entrega</div>
+    <div class="workflow-steps">
+      <div class="step-node">
+        <span class="step-number">1. Contrato</span>
+        Formalizado & Assinado
+      </div>
+      <div class="step-node">
+        <span class="step-number">2. Cronograma</span>
+        Geração de Boletos Automatizada
+      </div>
+      <div class="step-node">
+        <span class="step-number">3. Cobrança</span>
+        Boleto Banco Inter (Código de Barras + Pix)
+      </div>
+      <div class="step-node">
+        <span class="step-number">4. Liquidação</span>
+        Confirmação de Pagamento
+      </div>
+      <div class="step-node">
+        <span class="step-number">5. Logística</span>
+        Disparo Automático de OS de Entrega
+      </div>
+    </div>
+  </div>
+
+  <!-- SEÇÃO 2: REGRAS DE COBRANÇA E PARCELAMENTO -->
+  <h2>2. Automação de Faturamento e Faixas de Prazo</h2>
+  <p>
+    O Locgest aplica o cálculo automatizado de parcelamento (<span class="code-pill">installmentCalculator.ts</span>) em função da duração do contrato e das regras configuradas em <em>Configurações de Preços (Pricing Tiers)</em>:
+  </p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">📅 Contratos de 1 Mês (Curto Prazo)</div>
+      <div class="card-desc">
+        Cobrança única à vista gerada para a assinatura ou primeiro dia:
+        <br/>• <strong>Valor Total:</strong> Mensalidade + Frete de Entrega (Ida) + Frete de Retirada (Volta).
+        <br/>• <em>Garante o recebimento integral de custos logísticos antes da mobilização.</em>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📅 Contratos de 2 Meses</div>
+      <div class="card-desc">
+        Divisão estruturada em 2 parcelas estratégicas:
+        <br/>• <strong>1ª Parcela (10 dias):</strong> 1ª Mensalidade + Frete de Entrega.
+        <br/>• <strong>2ª Parcela (30 dias):</strong> 2ª Mensalidade + Frete de Retirada.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 12px;">
+    <div class="card-title">📅 Contratos de 3 ou mais Meses (Longo Prazo)</div>
+    <div class="card-desc">
+      Diluição do custo de desmobilização e previsibilidade de caixa:
+      <br/>• <strong>1ª Parcela (10 dias):</strong> 1ª Mensalidade + Frete de Entrega (Ida).
+      <br/>• <strong>2ª Parcela (30 dias):</strong> 2ª Mensalidade + Frete de Retirada (Volta).
+      <br/>• <strong>3ª Parcela em diante (a cada 30 dias):</strong> Apenas a mensalidade líquida de locação dos equipamentos.
+    </div>
+  </div>
+
+  <div class="callout-info">
+    💡 <strong>Flexibilidade com Segurança:</strong> No modal <em>"Gerar Boletos do Contrato"</em>, o operador financeiro tem autonomia para ajustar as datas de vencimento ou editar pontualmente os valores antes de efetivar a emissão.
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SEÇÃO 3: INTEGRAÇÃO BANCÁRIA (BANCO INTER V3) -->
+  <h2>3. Arquitetura da Integração com o Banco Inter</h2>
+  <p>
+    A emissão de boletos é integrada nativamente com a API bancária v3 do <strong>Banco Inter Empresas (PJ)</strong>, seguindo padrões bancários de segurança mTLS (Mutual TLS):
+  </p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🔒 Segurança mTLS & Certificados</div>
+      <div class="card-desc">
+        Cada organização realiza o upload do seu certificado público (<span class="code-pill">.crt</span>) e chave privada (<span class="code-pill">.key</span>) nas configurações bancárias. A autenticação mTLS é realizada via Edge Function do Supabase com isolamento total por empresa.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚡ Cache de Token OAuth 2.0</div>
+      <div class="card-desc">
+        O sistema armazena e reutiliza com segurança o <span class="code-pill">access_token</span> obtido do Banco Inter, evitando requisições redundantes de autenticação e garantindo alta performance na emissão em lote.
+      </div>
+    </div>
+  </div>
+
+  <h3>Dados Contidos em Cada Boleto Emitido</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Campo</th>
+        <th>Origem no Sistema</th>
+        <th>Comportamento no Banco Inter</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Nosso Número / Seu Número</strong></td>
+        <td><span class="code-pill">BOL-AAAA-XXXXXX</span></td>
+        <td>Identificador único atribuído à cobrança bancária.</td>
+      </tr>
+      <tr>
+        <td><strong>Dados do Pagador</strong></td>
+        <td>Cadastro do Cliente (CNPJ/CPF, Razão, Endereço, CEP)</td>
+        <td>Validação automática de tipo de pessoa (Física / Jurídica).</td>
+      </tr>
+      <tr>
+        <td><strong>Linha Digitável & Código de Barras</strong></td>
+        <td>Retorno oficial da API v3 do Banco Inter</td>
+        <td>Permite pagamento em qualquer agência, internet banking ou app.</td>
+      </tr>
+      <tr>
+        <td><strong>Pix Dinâmico Copia e Cola / QR Code</strong></td>
+        <td>Chave Pix configurada na empresa</td>
+        <td>Liquidação instantânea vinculada diretamente ao boleto bancário.</td>
+      </tr>
+      <tr>
+        <td><strong>Multa e Juros por Atraso</strong></td>
+        <td>Configuração padrão (2% multa / 1% a.m. mora)</td>
+        <td>Calculados automaticamente pela câmara de compensação.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SEÇÃO 4: TELAS E RECURSOS DISPONÍVEIS -->
+  <h2>4. Principais Telas e Funcionalidades no Sistema</h2>
+
+  <div class="card" style="margin-bottom: 12px;">
+    <div class="card-title">1. Página Financeira (<span class="code-pill">/financial</span>)</div>
+    <div class="card-desc">
+      • <strong>Cards Resumo:</strong> Total Bruto, Total Recebido, Pendente e Atrasado.<br/>
+      • <strong>Filtros Avançados:</strong> Busca por cliente/código, filtro por status (Todos, Pendentes, Pagos, Vencidos) e opção de ocultar contratos sem boletos.<br/>
+      • <strong>Card do Contrato:</strong> Barra de progresso percentual, botão de atalho para <em>"Gerar Boletos"</em>, e lista expansível de todas as faturas vinculadas.<br/>
+      • <strong>Ações Rápidas em cada Parcela:</strong> Botão de <em>"Copiar Linha Digitável"</em>, visualização de código de barras e botão <em>"Confirmar Pagamento"</em> manual com disparo de OS.
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 12px;">
+    <div class="card-title">2. Modal "Cobrança Rápida" (Avulsa)</div>
+    <div class="card-desc">
+      Permite criar rapidamente uma cobrança avulsa para qualquer cliente cadastrado, com descrição personalizada, vencimento e opção de associar ou não a um contrato em andamento.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">3. Configurações Bancárias (<span class="code-pill">/settings/bank-integration</span>)</div>
+    <div class="card-desc">
+      • Seleção de ambiente: <strong>Sandbox</strong> (testes) ou <strong>Produção</strong>.<br/>
+      • Credenciais: Client ID, Client Secret, Conta Corrente e Chave Pix.<br/>
+      • Upload seguro do Certificado CRT e Chave Privada KEY.<br/>
+      • <strong>Botão "Testar Conectividade":</strong> Diagnóstico ao vivo que verifica se a infraestrutura do Banco Inter está alcançável e pronta para emissão.
+    </div>
+  </div>
+
+  <div class="callout-alert">
+    ⚠️ <strong>Modo de Tolerância a Falhas (Fallback Gracioso):</strong> Caso a organização ainda não tenha inserido suas credenciais ativas do Banco Inter, o Locgest não trava a operação: os registros financeiros continuam sendo criados e gerenciados normalmente com códigos de controle internos até a ativação definitiva.
+  </div>
+
+</body>
+</html>
