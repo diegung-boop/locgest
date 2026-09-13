@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthProvider";
-import { Users, Building2, Settings, Shield, X, SlidersHorizontal, Coins } from "lucide-react";
+import { Users, Building2, Settings, Shield, X, SlidersHorizontal, Coins, KeyRound } from "lucide-react";
 
 interface SettingsSidebarProps {
   isOpen: boolean;
@@ -15,6 +15,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ isOpen, onClos
   // Settings sub-navigation items
   const settingsNavItems = [
     { label: "Papel Timbrado & Empresa", path: "/organization", icon: Building2, description: "Cabeçalho, rodapé e marca-d'água" },
+    { label: "Integração Banco Inter", path: "/bank-integration", icon: KeyRound, description: "Chaves, segredos e certificados" },
     { label: "Gestão de Usuários", path: "/users", icon: Users, description: "Perfis, papéis e permissões" },
     { label: "Tabela de Preços & Tarifas", path: "/pricing", icon: Coins, description: "Valores diários/mensais e tamanhos" },
   ];

@@ -17,6 +17,7 @@ export const MainLayout: React.FC = () => {
   useEffect(() => {
     if (
       location.pathname.startsWith("/organization") ||
+      location.pathname.startsWith("/bank-integration") ||
       location.pathname.startsWith("/users") ||
       location.pathname.startsWith("/pricing") ||
       location.pathname.startsWith("/superadmin")

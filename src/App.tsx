@@ -14,6 +14,7 @@ import { LogisticsPage } from "@/pages/LogisticsPage";
 import { UsersPage } from "@/pages/UsersPage";
 import { PricingSettingsPage } from "@/pages/PricingSettingsPage";
 import { OrganizationSettingsPage } from "@/pages/OrganizationSettingsPage";
+import { BankIntegrationSettingsPage } from "@/pages/BankIntegrationSettingsPage";
 import { SuperAdminPage } from "@/pages/SuperAdmin";
 import { LoginPage } from "@/pages/LoginPage";
 import { AcceptInvitePage } from "@/pages/AcceptInvitePage";
@@ -39,6 +40,7 @@ export function App() {
               <Route path="users" element={<UsersPage />} />
               <Route path="pricing" element={<PricingSettingsPage />} />
               <Route path="organization" element={<OrganizationSettingsPage />} />
+              <Route path="bank-integration" element={<BankIntegrationSettingsPage />} />
               <Route path="superadmin" element={<SuperAdminPage />} />
             </Route>
           </Routes>

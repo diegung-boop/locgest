@@ -22,24 +22,24 @@ export const Navbar: React.FC = () => {
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-4 py-3">
       <div className="flex items-center justify-between gap-4">
         {/* Brand & Organization Badge */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-tenant/20 border border-tenant/40 text-tenant font-bold shadow-lg shadow-tenant/10">
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-tenant/20 border border-tenant/40 text-tenant font-bold shadow-lg shadow-tenant/10 overflow-hidden shrink-0">
             {organization.logo_url ? (
-              <img src={organization.logo_url} alt={organization.name} className="w-8 h-8 rounded-lg object-cover" />
+              <img src={organization.logo_url} alt={organization.name} className="w-full h-full object-contain p-1" />
             ) : (
               <Building2 className="w-5 h-5 text-tenant" />
             )}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-lg tracking-tight text-white">LOCGEST</span>
-              <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full bg-tenant-soft text-tenant border border-tenant/30">
-                Especializado em Gestão de Locação de Equipamentos
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-extrabold text-lg tracking-tight text-white drop-shadow-sm">LOCGEST</span>
+              <span className="hidden sm:inline-flex px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full bg-tenant/15 text-tenant border border-tenant/30">
+                Gestão de Locações
               </span>
             </div>
-            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              {organization.name}
+            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 truncate">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+              <span className="truncate">{organization.name}</span>
             </p>
           </div>
         </div>

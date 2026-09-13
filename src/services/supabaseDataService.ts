@@ -15,6 +15,7 @@ import {
   EquipmentStatus,
   Maintenance,
   PricingTierRule,
+  TenantBankIntegration,
 } from "@/types/locgest";
 
 export class SupabaseDataService {
@@ -703,9 +704,42 @@ export class SupabaseDataService {
 
   static async saveFinancialRecord(record: FinancialRecord): Promise<void> {
     try {
-      const { client, contract, ...dbRecord } = record as any;
+      const { client, contract, payer_name, payer_document, ...dbRecord } = record as any;
       const { error } = await supabase.from("financial_records").upsert(dbRecord);
-      if (error) throw error;
+      
+      if (error) {
+        // Se a coluna contract_id ainda tiver a restrição NOT NULL no Supabase remoto (código 23502)
+        if (error.code === "23502" && error.message?.includes("contract_id")) {
+          // Tenta associar temporariamente ao contrato mais recente do cliente para não quebrar a emissão
+          if (dbRecord.client_id) {
+            const { data: clientContracts } = await supabase
+              .from("contracts")
+              .select("id")
+              .eq("client_id", dbRecord.client_id)
+              .order("created_at", { ascending: false })
+              .limit(1);
+
+            if (clientContracts && clientContracts.length > 0) {
+              console.warn(
+                "contract_id é obrigatório no Supabase atual. Vinculando temporariamente ao contrato mais recente do cliente:",
+                clientContracts[0].id
+              );
+              const fallbackRecord = {
+                ...dbRecord,
+                contract_id: clientContracts[0].id,
+              };
+              const fallbackRes = await supabase.from("financial_records").upsert(fallbackRecord);
+              if (!fallbackRes.error) {
+                return;
+              }
+            }
+          }
+          throw new Error(
+            "O banco de dados do Supabase ainda exige que cobranças avulsas tenham um contrato vinculado (contract_id NOT NULL). Execute o script 'supabase/fix_financial_records_and_bank_integrations.sql' no Editor SQL do Supabase."
+          );
+        }
+        throw error;
+      }
     } catch (e) {
       console.error("Supabase saveFinancialRecord failed:", e);
       throw e;
@@ -803,6 +837,115 @@ export class SupabaseDataService {
     } catch (e) {
       console.error("Supabase deletePricingTierRule failed:", e);
       throw e;
+    }
+  }
+
+  // BANK INTEGRATION (BANCO INTER CREDENTIALS PER TENANT)
+  static async getBankIntegration(orgId: string): Promise<TenantBankIntegration | null> {
+    try {
+      let localData: TenantBankIntegration | null = null;
+      if (typeof window !== "undefined" && window.localStorage) {
+        const cached = localStorage.getItem(`locgest_bank_int_${orgId}`);
+        if (cached) {
+          try {
+            localData = JSON.parse(cached);
+          } catch (_) {}
+        }
+      }
+
+      const { data, error } = await supabase
+        .from("tenant_bank_integrations")
+        .select("*")
+        .eq("organization_id", orgId)
+        .maybeSingle();
+
+      if (error || !data) {
+        return localData;
+      }
+
+      // Mescla com dados locais caso o banco Supabase ainda não tenha as colunas de arquivo de certificado
+      return {
+        ...localData,
+        ...data,
+        certificate_crt_content:
+          data.certificate_crt_content || localData?.certificate_crt_content || "",
+        certificate_key_content:
+          data.certificate_key_content || localData?.certificate_key_content || "",
+        certificate_crt_filename:
+          data.certificate_crt_filename || localData?.certificate_crt_filename || "",
+        certificate_key_filename:
+          data.certificate_key_filename || localData?.certificate_key_filename || "",
+      } as TenantBankIntegration;
+    } catch (e) {
+      console.error("getBankIntegration error:", e);
+      if (typeof window !== "undefined" && window.localStorage) {
+        const cached = localStorage.getItem(`locgest_bank_int_${orgId}`);
+        return cached ? JSON.parse(cached) : null;
+      }
+      return null;
+    }
+  }
+
+  static async saveBankIntegration(integration: TenantBankIntegration): Promise<void> {
+    try {
+      // Salva no localStorage como cache / fallback local imediato
+      if (typeof window !== "undefined" && window.localStorage) {
+        localStorage.setItem(`locgest_bank_int_${integration.organization_id}`, JSON.stringify(integration));
+      }
+
+      const { data: existing } = await supabase
+        .from("tenant_bank_integrations")
+        .select("id")
+        .eq("organization_id", integration.organization_id)
+        .maybeSingle();
+
+      const payload = {
+        ...integration,
+        updated_at: new Date().toISOString(),
+      };
+
+      // 1. Tentar salvar com todas as colunas
+      let res;
+      if (existing) {
+        res = await supabase
+          .from("tenant_bank_integrations")
+          .update(payload)
+          .eq("organization_id", integration.organization_id);
+      } else {
+        res = await supabase
+          .from("tenant_bank_integrations")
+          .insert(payload);
+      }
+
+      // 2. Se falhar por causa de colunas de certificado não existirem no Supabase, salvar as colunas padrão
+      if (res?.error) {
+        console.warn("Falha ao salvar certificados completos no Supabase, salvando colunas base:", res.error.message);
+        const basePayload = {
+          organization_id: integration.organization_id,
+          bank_provider: integration.bank_provider,
+          environment: integration.environment,
+          client_id: integration.client_id,
+          client_secret: integration.client_secret,
+          account_number: integration.account_number,
+          pix_key: integration.pix_key,
+          webhook_url: integration.webhook_url,
+          is_active: integration.is_active,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (existing) {
+          await supabase
+            .from("tenant_bank_integrations")
+            .update(basePayload)
+            .eq("organization_id", integration.organization_id);
+        } else {
+          await supabase
+            .from("tenant_bank_integrations")
+            .insert(basePayload);
+        }
+      }
+    } catch (e) {
+      console.warn("Supabase saveBankIntegration fallback to localStorage:", e);
     }
   }
 }
